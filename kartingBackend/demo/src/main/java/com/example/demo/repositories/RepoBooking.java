@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
-    Integer getNumOfPeople();
+
 }

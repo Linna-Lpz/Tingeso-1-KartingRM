@@ -13,10 +13,12 @@ public class EntityBooking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long lapsOrMaxTimeAllowed;
-    private Long regularPrices;
-    private Long totalDurationReservation;
+    private Integer lapsOrMaxTimeAllowed;
+    private Integer totalPrice;
+    private Integer totalDurationReservation;
     private Integer numOfPeople;
     private String clientName;
+    private String clientEmail;
+    private String guestsEmail;
     //TO DO: fecha y hora de la reserva
 }
