@@ -7,6 +7,7 @@ import com.example.demo.repositories.RepoUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,22 +21,22 @@ public class ServiceBooking {
     /**
      * Método para guardar una reserva
      */
-    public Boolean saveBooking(EntityBooking booking) {
+    public void saveBooking(EntityBooking booking) {
 
         List<Integer> allowedLapsOrTime = Arrays.asList(10, 15, 20);
-        // Se verifica que los parametros de la reserva sean completados
+        // Se verifica que se ingresen los parametros de la reserva
         if (!allowedLapsOrTime.contains(booking.getLapsOrMaxTimeAllowed()) || booking.getClientName().isEmpty() || booking.getClientEmail().equals("")) {
             System.out.println("Error: Campos incompletos");
-            return false;
         } else {
             String clientName = booking.getClientName();
             String clientEmail = booking.getClientEmail();
 
-            // Se verifica si el usuario ya existe en la base de datos
+            // Se verifica si el usuario no existe en la base de datos
             if (repoUser.findByClientName(clientName) == null || repoUser.findByClientEmail(clientEmail) == null) {
                 EntityUser newUser = new EntityUser();
                 newUser.setClientName(clientName);
                 newUser.setClientEmail(clientEmail);
+                newUser.setClientBirthday(booking.getClientBirthday());
                 newUser.setVisistsPerMonth(1);
                 repoUser.save(newUser);
             } else {
@@ -59,18 +60,20 @@ public class ServiceBooking {
             Integer numOfPeople = booking.getNumOfPeople();
             price = price * numOfPeople;
 
-            EntityUser client = repoUser.findByClientName(clientName);
             // Se calculan los descuentos aplicados a la reserva
             Integer price1 = discountsForNumberOfPeople(numOfPeople, price);
+
+            EntityUser client = repoUser.findByClientName(clientName);
             Integer price2 = discountsForFrequentCustomers(client.getVisistsPerMonth(), price1);
 
             // TO DO: descuento fecha y hora de la reserva
+            LocalDate bookingDate = booking.getBookingDate();
+            Integer price3 = discountsForBirthday(client, bookingDate, numOfPeople, price2);
 
-            booking.setTotalPrice(price2);
+            booking.setTotalPrice(price3);
 
             repoBooking.save(booking);
             System.out.println("Reserva creada");
-            return true; //
         }
     }
 
@@ -109,5 +112,30 @@ public class ServiceBooking {
         }
         return price - (price / discountPercentage);
 
+    }
+
+    /**
+     * Método para aplicar descuento a clientes cumpleañeros
+     */
+    public Integer discountsForBirthday(EntityUser client, LocalDate bookingDate, Integer numOfPeople, Integer price) {
+        if (3 <= numOfPeople && numOfPeople <= 10){
+            String clientBirthday = client.getClientBirthday();
+            String[] birthday = clientBirthday.split("-");
+            Integer day = Integer.parseInt(birthday[0]);
+            Integer month = Integer.parseInt(birthday[1]);
+
+            if (bookingDate.getDayOfMonth() == day && bookingDate.getMonthValue() == month){
+                if(numOfPeople <= 5){
+                    return price - (price / 2);
+                } else{
+                    // TO DO: descuento por grupo de personas de cumpleaños
+                    return price; //
+                }
+            } else {
+                return price;
+            }
+        } else {
+            return price;
+        }
     }
 }

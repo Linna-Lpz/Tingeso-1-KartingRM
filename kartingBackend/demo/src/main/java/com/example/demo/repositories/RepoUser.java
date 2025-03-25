@@ -7,5 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RepoUser extends JpaRepository<EntityUser, Long> {
     EntityUser findByClientName(String clientName);
-    String findByClientEmail(String clientEmail);
+    EntityUser findByClientEmail(String clientEmail);
+
 }

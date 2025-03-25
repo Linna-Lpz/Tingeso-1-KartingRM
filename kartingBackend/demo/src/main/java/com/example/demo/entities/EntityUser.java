@@ -15,5 +15,6 @@ public class EntityUser {
     private Long id;
     private String clientName;
     private String clientEmail;
+    private String clientBirthday; // DD-MM
     private Integer visistsPerMonth;
 }

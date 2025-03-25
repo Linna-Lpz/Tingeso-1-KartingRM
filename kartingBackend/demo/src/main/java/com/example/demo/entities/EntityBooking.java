@@ -3,6 +3,8 @@ package com.example.demo.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @Setter
@@ -19,6 +21,9 @@ public class EntityBooking {
     private Integer numOfPeople;
     private String clientName;
     private String clientEmail;
+    private String clientBirthday;
     private String guestsEmail;
+
     //TO DO: fecha y hora de la reserva
+    private LocalDate bookingDate; // YYYY-MM-DD
 }
