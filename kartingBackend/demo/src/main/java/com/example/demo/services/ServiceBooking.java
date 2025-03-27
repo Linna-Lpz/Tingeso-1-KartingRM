@@ -31,6 +31,7 @@ public class ServiceBooking {
             String clientName = booking.getClientName();
             String clientEmail = booking.getClientEmail();
 
+
             // Se verifica si el usuario no existe en la base de datos
             if (repoUser.findByClientName(clientName) == null || repoUser.findByClientEmail(clientEmail) == null) {
                 EntityUser newUser = new EntityUser();
