@@ -8,12 +8,11 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "app_user")
-public class EntityUser {
+@Table(name = "client")
+public class EntityClient {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String clientName;
+    private String clientRUT;
+    private String clientName; // Nombre Apellido
     private String clientEmail;
     private String clientBirthday; // DD-MM
     private Integer visistsPerMonth;
