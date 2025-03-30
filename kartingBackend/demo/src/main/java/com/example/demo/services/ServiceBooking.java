@@ -32,15 +32,15 @@ public class ServiceBooking {
     public void saveBooking(EntityBooking booking) {
         String clientsRUT = booking.getClientsRUT();
 
-        // TO DO: Validar que la fecha y hora sigan disponibles
-
         // Validar los campos de la reserva
         if (!validateBookingFields(booking)) {
             return;
         }
 
-        // Separar los RUTs de los clientes
-        List<String> clientRuts = Arrays.stream(clientsRUT.split(","))
+        // TO DO: Validar que la fecha y hora sigan disponibles
+
+        // Validar que el cliente que realiza la reserva esté registrado
+        List<String> clientRuts = Arrays.stream(clientsRUT.split(",")) // Separar los RUTs de los clientes
                                         .map(String::trim)
                                         .collect(Collectors.toList());
 
@@ -48,11 +48,29 @@ public class ServiceBooking {
             return;
         }
 
+        // Calcular descuentos de cada cliente
         String discountsList = discountsAplied(clientRuts, booking, repoClient);
+
+        int basePrice = 0;
+        int totalDurationReservation = 0;
+
+        if (booking.getLapsOrMaxTimeAllowed() == 10){
+            basePrice = 15000;
+            totalDurationReservation = 30;
+        } else if (booking.getLapsOrMaxTimeAllowed() == 15) {
+            basePrice = 20000;
+            totalDurationReservation = 35;
+        } else if (booking.getLapsOrMaxTimeAllowed() == 20) {
+            basePrice = 25000;
+            totalDurationReservation = 40;
+        }
+
+        // Calcular precio final a pagar por cada cliente
+        String totalPrice = totalPriceWithDiscount(basePrice, discountsList);
 
 
         // Se guarda la reserva
-        booking.setTotalPrice(discountsList); // Precios con el descuento aplicado a cada cliente
+        booking.setTotalPrice(totalPrice); // Precios con el descuento aplicado a cada cliente
         booking.setTotalDurationReservation(0); // Tiempo total duracion reserva *evaluar eliminar y dejar en el comprobante
 
         repoBooking.save(booking);
@@ -147,6 +165,8 @@ public class ServiceBooking {
 
     /**
      * Método para verificar que el usuario que realiza la reserva, está registrado
+     * @param clientRuts lista de RUTs de los clientes
+     * @return true si el cliente está registrado, false en caso contrario
      */
     public Boolean validateClientWhoMadeReservation(List<String> clientRuts) {
         // Verificar que el primer RUT (cliente principal) esté registrado
@@ -161,6 +181,10 @@ public class ServiceBooking {
 
     /**
      * Método para aplicar los descuentos a los clietnes registrados según corresponda
+     * @param clientRuts lista de RUTs de los clientes
+     * @param booking objeto de tipo EntityBooking
+     * @param repoClient repositorio de clientes
+     * @return lista de descuentos aplicados a cada cliente
      */
     public String discountsAplied(List<String> clientRuts, EntityBooking booking, RepoClient repoClient){
         LocalDate bookingDate = booking.getBookingDate();
@@ -294,5 +318,21 @@ public class ServiceBooking {
                 .collect(Collectors.joining(","));
     }
 
+    /**
+     * Método para calcular el precio total a pagar por cada cliente
+     * @param basePrice precio base de la reserva
+     * @param discountsList lista de descuentos aplicados a cada cliente
+     * @return precio total a pagar por cada cliente
+     */
+    public String totalPriceWithDiscount(Integer basePrice, String discountsList){
+        StringBuilder totalPrice = new StringBuilder();
+        for (String discount : discountsList.split(",")) {
+            Integer discountValue = Integer.parseInt(discount);
+            Integer priceWithDiscount = basePrice - ((basePrice * discountValue) / 100);
+            totalPrice.append(priceWithDiscount).append(",");
+            System.out.println("Precio total a pagar por el cliente: " + totalPrice);
+        }
+        return totalPrice.toString();
+    }
 
 }

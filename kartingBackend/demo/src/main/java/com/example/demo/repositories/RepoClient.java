@@ -10,7 +10,4 @@ import java.util.List;
 @Repository
 public interface RepoClient extends JpaRepository<EntityClient, Long> {
     EntityClient findByClientRUT(String clientRUT);
-    EntityClient findByClientEmail(String clientEmail);
-    List<EntityClient> findByClientBirthday(String clientBirthday);
-
 }
