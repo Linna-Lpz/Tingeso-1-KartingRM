@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 
 @Entity
 @Getter
@@ -30,8 +29,10 @@ public class EntityBooking {
     private String clientsNames; //
     private String clientsEmails; // Lista con los correos de los clientes
 
-    private String totalPrice; // Tarifa base *evaluar eliminar y dejar en el comprobante
-    private Integer totalDurationReservation; // Tiempo total duracion reserva *evaluar eliminar y dejar en el comprobante
+    private String totalPrice; // Tarifa base *evaluar si eliminar y dejar en el comprobante
+
+    @Column(name = "total_duration_reservation")
+    private LocalTime bookingTimeEnd; // HH:MM Tiempo total duracion reserva
 
 
 }

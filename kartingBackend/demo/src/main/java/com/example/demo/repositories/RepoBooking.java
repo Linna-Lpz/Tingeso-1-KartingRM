@@ -11,4 +11,6 @@ import java.util.List;
 @Repository
 public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
     List<EntityBooking> findByBookingDateAndBookingTime(LocalDate bookingDate, LocalTime bookingTime);
+
+    Object findByBookingDate(LocalDate bookingDate);
 }

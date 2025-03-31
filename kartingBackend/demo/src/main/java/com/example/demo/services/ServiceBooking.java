@@ -7,15 +7,11 @@ import com.example.demo.repositories.RepoClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.parser.Entity;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ServiceBooking {
@@ -30,48 +26,32 @@ public class ServiceBooking {
      *
      */
     public void saveBooking(EntityBooking booking) {
-        String clientsRUT = booking.getClientsRUT();
-
-        // Validar los campos de la reserva
-        if (!validateBookingFields(booking)) {
+        String[] clientsRUT = booking.getClientsRUT().split(",");
+        if (!validateBookingFields(booking) || !validateClientWhoMadeReservation(clientsRUT)) {
             return;
         }
 
-        // TO DO: Validar que la fecha y hora sigan disponibles
+        // Definir precios y duración
+        int basePrice, totalDurationReservation;
 
-        // Validar que el cliente que realiza la reserva esté registrado
-        List<String> clientRuts = Arrays.stream(clientsRUT.split(",")) // Separar los RUTs de los clientes
-                                        .map(String::trim)
-                                        .collect(Collectors.toList());
-
-        if (!validateClientWhoMadeReservation(clientRuts)) {
-            return;
+        // Calcular precio base y duración total según el número de vueltas o tiempo máximo permitido
+        switch (booking.getLapsOrMaxTimeAllowed()) {
+            case 10 -> { basePrice = 15000; totalDurationReservation = 30; }
+            case 15 -> { basePrice = 20000; totalDurationReservation = 35; }
+            case 20 -> { basePrice = 25000; totalDurationReservation = 40; }
+            default -> {
+                System.out.println("Valor inválido para lapsOrMaxTimeAllowed.");
+                return;
+            }
         }
 
-        // Calcular descuentos de cada cliente
-        String discountsList = discountsAplied(clientRuts, booking, repoClient);
-
-        int basePrice = 0;
-        int totalDurationReservation = 0;
-
-        if (booking.getLapsOrMaxTimeAllowed() == 10){
-            basePrice = 15000;
-            totalDurationReservation = 30;
-        } else if (booking.getLapsOrMaxTimeAllowed() == 15) {
-            basePrice = 20000;
-            totalDurationReservation = 35;
-        } else if (booking.getLapsOrMaxTimeAllowed() == 20) {
-            basePrice = 25000;
-            totalDurationReservation = 40;
-        }
-
-        // Calcular precio final a pagar por cada cliente
+        // Calcular precio final con descuentos
+        String discountsList = discountsAplied(clientsRUT, booking, repoClient);
         String totalPrice = totalPriceWithDiscount(basePrice, discountsList);
 
-
-        // Se guarda la reserva
-        booking.setTotalPrice(totalPrice); // Precios con el descuento aplicado a cada cliente
-        booking.setTotalDurationReservation(0); // Tiempo total duracion reserva *evaluar eliminar y dejar en el comprobante
+        // Calcular hora de término
+        booking.setTotalPrice(totalPrice);
+        booking.setBookingTimeEnd(booking.getBookingTime().plusMinutes(totalDurationReservation));
 
         repoBooking.save(booking);
     }
@@ -80,39 +60,28 @@ public class ServiceBooking {
      * Método para verificar que los campos de la reserva se han completado
      */
     public Boolean validateBookingFields(EntityBooking booking) {
-        LocalDate bookingDate = booking.getBookingDate();
-        LocalTime bookingTime = booking.getBookingTime();
-        Integer lapsOrMaxTimeAllowed = booking.getLapsOrMaxTimeAllowed();
-        Integer numOfPeople = booking.getNumOfPeople();
-        String clientsRUT = booking.getClientsRUT();
-        String clientsNames = booking.getClientsNames();
-        String clientEmail = booking.getClientsEmails();
-
-        // Se valida que los campos de la reserva no estén vacíos
-        if (bookingDate == null || bookingTime == null ||
-                lapsOrMaxTimeAllowed == null ||
-                numOfPeople == null ||
-                clientsRUT == null || clientsRUT.trim().isEmpty() ||
-                clientsNames == null || clientsNames.trim().isEmpty() ||
-                clientEmail == null || clientEmail.trim().isEmpty()) {
+        // Verificar que los campos no estén vacíos
+        if (booking.getBookingDate() == null || booking.getBookingTime() == null ||
+                booking.getLapsOrMaxTimeAllowed() == null || booking.getNumOfPeople() == null ||
+                booking.getClientsRUT().isEmpty() || booking.getClientsNames().isEmpty() ||
+                booking.getClientsEmails().isEmpty()) {
             System.out.println("Los campos de la reserva no pueden estar vacíos.");
             return false;
         }
 
-        // Se valida que las vueltas o el tiempo máximo permitido sean válidos
-        List<Integer> allowedLaps = Arrays.asList(10, 15, 20);
-        if (!allowedLaps.contains(lapsOrMaxTimeAllowed)) {
-            System.out.println("Las vueltas o el tiempo máximo permitido no son válidos.");
+        // Verificar que la cantidad de personas esté en el rango permitido
+        if (booking.getNumOfPeople() < 1 || booking.getNumOfPeople() > 15) {
+            System.out.println("Número de personas fuera de rango (1-15).");
             return false;
         }
 
-        // Se valida que el número de personas sea válido
-        if (numOfPeople < 1 || numOfPeople > 15) {
-            System.out.println("El número de personas debe estar entre 1 y 15.");
+        // Verificar que la fecha y hora no se encuentre reservada
+        if (!isBookingTimeValid(booking.getBookingDate(), booking.getBookingTime(), repoBooking)) {
+            System.out.println("Fecha u hora de reserva inválida.");
             return false;
         }
 
-        System.out.println("Se han completado todos los campos");
+        System.out.println("Reserva válida.");
         return true;
     }
 
@@ -124,32 +93,13 @@ public class ServiceBooking {
      * @return true si la reserva es válida, false en caso contrario
      */
     public boolean isBookingTimeValid(LocalDate bookingDate, LocalTime bookingTime, RepoBooking repoBooking) {
-        // Definir horarios de apertura y cierre
-        LocalTime openingWeekdays = LocalTime.of(14, 0); // Horario de apertura para días de semana
-        LocalTime openingWeekends = LocalTime.of(10, 0); // Horario de apertura para fines de semana
-        LocalTime closingTime = LocalTime.of(22, 0);
-
-        // Determinar si es fin de semana o feriado
-        boolean isWeekend = bookingDate.getDayOfWeek() == DayOfWeek.SATURDAY ||
-                            bookingDate.getDayOfWeek() == DayOfWeek.SUNDAY;
-        boolean isHoliday = checkIfHoliday(bookingDate); // Método que verifica si es feriado
-
-        LocalTime openingTime = (isWeekend || isHoliday) ? openingWeekends : openingWeekdays;
-
-        // Verificar si la hora está dentro del horario permitido
-        if (bookingTime.isBefore(openingTime) || bookingTime.isAfter(closingTime)) {
-            System.out.println("Hora de reserva fuera del horario permitido.");
+        LocalTime openingTime = (checkIfHoliday(bookingDate)) ? LocalTime.of(10, 0) : LocalTime.of(14, 0);
+        if (bookingTime.isBefore(openingTime) || bookingTime.isAfter(LocalTime.of(22, 0))) {
             return false;
         }
+        return repoBooking.findByBookingDateAndBookingTime(bookingDate, bookingTime).isEmpty();
 
-        // Verificar disponibilidad en la base de datos
-        List<EntityBooking> existingBookings = repoBooking.findByBookingDateAndBookingTime(bookingDate, bookingTime);
-        if (!existingBookings.isEmpty()) {
-            System.out.println("El horario ya está reservado.");
-            return false;
-        }
-
-        return true; // La reserva es válida
+        // TO DO: verificar que la hora ingresada no se encuentre dentro del bloque horario de otra reserva
     }
 
     /**
@@ -168,14 +118,21 @@ public class ServiceBooking {
      * @param clientRuts lista de RUTs de los clientes
      * @return true si el cliente está registrado, false en caso contrario
      */
-    public Boolean validateClientWhoMadeReservation(List<String> clientRuts) {
-        // Verificar que el primer RUT (cliente principal) esté registrado
-        String clientName = repoClient.findByClientRUT(clientRuts.get(0)).getClientName();
-        if (clientName == null || clientName.trim().isEmpty()) {
+    public Boolean validateClientWhoMadeReservation(String[] clientRuts) {
+        // Verificar si la lista no está vacía
+        if (clientRuts == null || clientRuts.length == 0) {
+            System.out.println("La lista de RUTs está vacía.");
+            return false;
+        }
+
+        EntityClient client = repoClient.findByClientRUT(Arrays.stream(clientRuts).toList().get(0));
+
+        // Validar que el cliente existe antes de acceder a sus datos
+        if (client == null) {
             System.out.println("El cliente principal no está registrado.");
             return false;
         }
-        System.out.println("El cliente principal está registrado");
+        System.out.println("El cliente principal está registrado: " + client.getClientName());
         return true;
     }
 
@@ -186,103 +143,69 @@ public class ServiceBooking {
      * @param repoClient repositorio de clientes
      * @return lista de descuentos aplicados a cada cliente
      */
-    public String discountsAplied(List<String> clientRuts, EntityBooking booking, RepoClient repoClient){
-        LocalDate bookingDate = booking.getBookingDate();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM");
-        String bookingDayMonth = bookingDate.format(formatter);
+    public String discountsAplied(String[] clientRuts, EntityBooking booking, RepoClient repoClient){
+        String bookingDayMonth = booking.getBookingDate().format(DateTimeFormatter.ofPattern("dd-MM"));
         Integer numOfPeople = booking.getNumOfPeople();
-        List<Integer> discountsList = new ArrayList<>();
+        StringBuilder discountsList = new StringBuilder();
+        int discount;
 
         if (1 == numOfPeople || numOfPeople == 2) {
             for (String rut : clientRuts) {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
                     Integer visitsPerMonth = client.getVisistsPerMonth();
-                    if (0 == visitsPerMonth || visitsPerMonth == 1) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(0);
-                    } else if (2 <= visitsPerMonth && visitsPerMonth <= 4) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(10);
-                    } else if (5 == visitsPerMonth || visitsPerMonth == 6) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(20);
-                    } else {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(30);
-                    }
+                    discount = (2 <= visitsPerMonth && visitsPerMonth <= 4) ? 10
+                            : (5 == visitsPerMonth || visitsPerMonth == 6) ? 20
+                            : (visitsPerMonth >= 7) ? 30
+                            : 0;
+                    client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
-                    discountsList.add(0); // Si el cliente no está registrado, no se aplica descuento
+                    discount = 0; // Si el cliente no está registrado, no se aplica descuento
                 }
+                discountsList.append(discount).append(",");
             }
         }
         if (3 <= numOfPeople && numOfPeople <= 5) {
+            int bDayDiscountAplied = 0;
             for (String rut : clientRuts) {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
-                    if (!discountsList.contains(50)) {
-                        String clientBirthday = client.getClientBirthday();
-                        if (clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
-                            client.setVisistsPerMonth(client.getVisistsPerMonth() + 1);
-                            discountsList.add(50);
-                        }else {
-                            Integer visitsPerMonth = client.getVisistsPerMonth();
-                            if (0 == visitsPerMonth || visitsPerMonth == 1) {
-                                client.setVisistsPerMonth(visitsPerMonth + 1);
-                                discountsList.add(0);
-                            } else if (2 <= visitsPerMonth && visitsPerMonth <= 4) {
-                                client.setVisistsPerMonth(visitsPerMonth + 1);
-                                discountsList.add(10);
-                            } else if (5 == visitsPerMonth || visitsPerMonth == 6) {
-                                client.setVisistsPerMonth(visitsPerMonth + 1);
-                                discountsList.add(20);
-                            } else if (7 <= visitsPerMonth) {
-                                client.setVisistsPerMonth(visitsPerMonth + 1);
-                                discountsList.add(30);
-                            } else {
-                                client.setVisistsPerMonth(visitsPerMonth + 1);
-                                discountsList.add(10); // Descuento por grupo de 3 a 5 personas
-                            }
-                        }
+                    Integer visitsPerMonth = client.getVisistsPerMonth();
+                    String clientBirthday = client.getClientBirthday();
+                    if (bDayDiscountAplied == 0 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
+                        discount = 50;
+                        bDayDiscountAplied = 1;
+                    } else {
+                        discount = (5 == visitsPerMonth || visitsPerMonth == 6) ? 20
+                                : (visitsPerMonth >= 7) ? 30
+                                : 10; // Descuento por grupo de 3 a 5 personas
                     }
+                    client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
-                    discountsList.add(0); // Si el cliente no está registrado, no se aplica descuento
+                    discount = 0; // Si el cliente no está registrado, no se aplica descuento
                 }
+                discountsList.append(discount).append(",");
             }
         }
         if (6 <= numOfPeople && numOfPeople <= 10) {
-            int discount50Count = 0;
+            int bDayDiscountAplied = 0;
             for (String rut : clientRuts) {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
-                    if (discount50Count < 2) {
-                        String clientBirthday = client.getClientBirthday();
-                        if (clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
-                            client.setVisistsPerMonth(client.getVisistsPerMonth() + 1);
-                            discountsList.add(50);
-                            discount50Count++;
-                        }
-                    }
                     Integer visitsPerMonth = client.getVisistsPerMonth();
-                    if (0 == visitsPerMonth || visitsPerMonth == 1) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(0);
-                    } else if (2 <= visitsPerMonth && visitsPerMonth <= 4) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(10);
-                    } else if (5 == visitsPerMonth || visitsPerMonth == 6) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(20);
-                    } else if (7 <= visitsPerMonth) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(30);
+                    String clientBirthday = client.getClientBirthday();
+                    if (bDayDiscountAplied < 3 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
+                        discount = 50;
+                        bDayDiscountAplied += 1;
                     } else {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(20); // Descuento por grupo de 6 a 10 personas
+                        discount = (visitsPerMonth >= 7) ? 30
+                                : 20; // Descuento por el grupo de 6 a 10 personas
                     }
+                    client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
-                    discountsList.add(0); // Si el cliente no está registrado, no se aplica descuento
+                    discount = 0; // Si el cliente no está registrado, no se aplica descuento
                 }
+                discountsList.append(discount).append(",");
             }
         }
         if (11 <= numOfPeople && numOfPeople <= 15) {
@@ -290,32 +213,16 @@ public class ServiceBooking {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
                     Integer visitsPerMonth = client.getVisistsPerMonth();
-                    if (0 == visitsPerMonth || visitsPerMonth == 1) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(0);
-                    } else if (2 <= visitsPerMonth && visitsPerMonth <= 4) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(10);
-                    } else if (5 == visitsPerMonth || visitsPerMonth == 6) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(20);
-                    } else if (7 <= visitsPerMonth) {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(30);
-                    } else {
-                        client.setVisistsPerMonth(visitsPerMonth + 1);
-                        discountsList.add(30); // Descuento por grupo de 11 a 15 personas
-                    }
+                    discount = 30; // Descuento por grupo de 11 a 15 personas
+                    client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
-                    discountsList.add(0); // Si el cliente no está registrado, no se aplica descuento
+                    discount = 0; // Si el cliente no está registrado, no se aplica descuento
                 }
+                discountsList.append(discount).append(",");
             }
         }
         // Convertir cada Integer a String
-        // Unirlos con una coma
-        return discountsList.stream()
-                .map(String::valueOf) // Convertir cada Integer a String
-                .collect(Collectors.joining(","));
+        return discountsList.toString();
     }
 
     /**
@@ -334,5 +241,4 @@ public class ServiceBooking {
         }
         return totalPrice.toString();
     }
-
 }
