@@ -22,6 +22,8 @@ public class EntityBooking {
     private LocalDate bookingDate; // DD-MM-YYYY
     @Column(name = "booking_time")
     private LocalTime bookingTime; // HH:MM
+    @Column(name = "total_duration_reservation")
+    private LocalTime bookingTimeEnd; // HH:MM Tiempo total duracion reserva
 
     private Integer lapsOrMaxTimeAllowed;
     private Integer numOfPeople;
@@ -31,8 +33,7 @@ public class EntityBooking {
 
     private String totalPrice; // Tarifa base *evaluar si eliminar y dejar en el comprobante
 
-    @Column(name = "total_duration_reservation")
-    private LocalTime bookingTimeEnd; // HH:MM Tiempo total duracion reserva
+    private String bookingStatus; // Estado de la reserva (confirmada, no confirmada, cancelada)
 
 
 }

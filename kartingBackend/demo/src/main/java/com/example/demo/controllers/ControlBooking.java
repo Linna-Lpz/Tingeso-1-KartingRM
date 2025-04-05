@@ -24,4 +24,14 @@ public class ControlBooking {
         return ResponseEntity.ok(entityBooking);
     }
 
+    /**
+     * Método para confirmar o cancelar una reserva
+     * @param isConfirmed Booleano que indica si la reserva fue confirmada o no
+     *
+     */
+    @PostMapping("/confirm")
+    public ResponseEntity<String> confirmBooking(@RequestBody Boolean isConfirmed, @RequestBody EntityBooking booking) {
+        serviceBooking.confirmBooking(isConfirmed, booking);
+        return ResponseEntity.ok("Reserva confirmada");
+    }
 }

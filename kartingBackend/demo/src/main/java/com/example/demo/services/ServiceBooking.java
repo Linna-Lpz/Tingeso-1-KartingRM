@@ -26,11 +26,6 @@ public class ServiceBooking {
      *
      */
     public void saveBooking(EntityBooking booking) {
-        String[] clientsRUT = booking.getClientsRUT().split(",");
-        if (!validateBookingFields(booking) || !validateClientWhoMadeReservation(clientsRUT)) {
-            return;
-        }
-
         // Definir precios y duración
         int basePrice, totalDurationReservation;
 
@@ -45,21 +40,25 @@ public class ServiceBooking {
             }
         }
 
+        String[] clientsRUT = booking.getClientsRUT().split(",");
+
+        if (!validateBookingFields(booking, totalDurationReservation) || !validateClientWhoMadeReservation(clientsRUT)) {
+            return;
+        }
+
         // Calcular precio final con descuentos
         String discountsList = discountsAplied(clientsRUT, booking, repoClient);
         String totalPrice = totalPriceWithDiscount(basePrice, discountsList);
-
-        // Calcular hora de término
         booking.setTotalPrice(totalPrice);
-        booking.setBookingTimeEnd(booking.getBookingTime().plusMinutes(totalDurationReservation));
 
+        booking.setBookingStatus("sin confirmar");
         repoBooking.save(booking);
     }
 
     /**
      * Método para verificar que los campos de la reserva se han completado
      */
-    public Boolean validateBookingFields(EntityBooking booking) {
+    public Boolean validateBookingFields(EntityBooking booking, int totalDurationReservation) {
         // Verificar que los campos no estén vacíos
         if (booking.getBookingDate() == null || booking.getBookingTime() == null ||
                 booking.getLapsOrMaxTimeAllowed() == null || booking.getNumOfPeople() == null ||
@@ -76,7 +75,7 @@ public class ServiceBooking {
         }
 
         // Verificar que la fecha y hora no se encuentre reservada
-        if (!isBookingTimeValid(booking.getBookingDate(), booking.getBookingTime(), repoBooking)) {
+        if (!isBookingTimeValid(booking, totalDurationReservation, repoBooking)) {
             System.out.println("Fecha u hora de reserva inválida.");
             return false;
         }
@@ -87,19 +86,40 @@ public class ServiceBooking {
 
     /**
      * Método para validar la fecha y hora de reserva
-     * @param bookingDate fecha de la reserva
-     * @param bookingTime hora de la reserva
+     * @param booking objeto de tipo EntityBooking
      * @param repoBooking repositorio de reservas
      * @return true si la reserva es válida, false en caso contrario
      */
-    public boolean isBookingTimeValid(LocalDate bookingDate, LocalTime bookingTime, RepoBooking repoBooking) {
+    public boolean isBookingTimeValid(EntityBooking booking, int totalDurationReservation, RepoBooking repoBooking) {
+        LocalDate bookingDate = booking.getBookingDate();
+        LocalTime bookingTime = booking.getBookingTime();
+        // Verificar que la hora de reserva esté dentro del horario permitido
         LocalTime openingTime = (checkIfHoliday(bookingDate)) ? LocalTime.of(10, 0) : LocalTime.of(14, 0);
         if (bookingTime.isBefore(openingTime) || bookingTime.isAfter(LocalTime.of(22, 0))) {
             return false;
         }
-        return repoBooking.findByBookingDateAndBookingTime(bookingDate, bookingTime).isEmpty();
 
-        // TO DO: verificar que la hora ingresada no se encuentre dentro del bloque horario de otra reserva
+        // Calcular la hora de término de la nueva reserva
+        LocalTime newBookingTimeEnd = bookingTime.plusMinutes(totalDurationReservation);
+
+        // Obtener todas las reservas del mismo día
+        List<EntityBooking> existingBookings = repoBooking.findByBookingDate(bookingDate);
+
+        if (existingBookings != null) {
+            for (EntityBooking existingBooking : existingBookings) {
+                LocalTime existingBookingTime = existingBooking.getBookingTime();
+                LocalTime existingBookingTimeEnd = existingBooking.getBookingTimeEnd();
+
+                // Comprobar si hay solapamiento de horarios
+                if (!newBookingTimeEnd.isBefore(existingBookingTime) && !bookingTime.isAfter(existingBookingTimeEnd)) {
+                    System.out.println("La hora de reserva se superpone con una reserva existente.");
+                    return false;
+                }
+            }
+        }
+        booking.setBookingTimeEnd(newBookingTimeEnd);
+        System.out.println("La hora de reserva es válida.");
+        return true;
     }
 
     /**
@@ -240,5 +260,22 @@ public class ServiceBooking {
             System.out.println("Precio total a pagar por el cliente: " + totalPrice);
         }
         return totalPrice.toString();
+    }
+
+    /**
+     * Método para confirmar o cancelar una reserva
+     * @param isConfirmed
+     * @param booking
+     * @return true si la reserva fue confirmada, false en caso contrario
+     */
+    public Boolean confirmBooking(Boolean isConfirmed, EntityBooking booking) {
+        // Lógica para confirmar la reserva
+        if (isConfirmed) {
+            booking.setBookingStatus("confirmada");
+            return true;
+        } else {
+            booking.setBookingStatus("cancelada");
+            return false;
+        }
     }
 }
