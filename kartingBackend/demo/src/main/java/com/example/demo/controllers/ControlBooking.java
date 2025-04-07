@@ -3,8 +3,13 @@ package com.example.demo.controllers;
 import com.example.demo.entities.EntityBooking;
 import com.example.demo.services.ServiceBooking;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/booking")
@@ -26,12 +31,42 @@ public class ControlBooking {
 
     /**
      * Método para confirmar o cancelar una reserva
-     * @param isConfirmed Booleano que indica si la reserva fue confirmada o no
+     * @param bookingId ID de la reserva
      *
      */
-    @PostMapping("/confirm")
-    public ResponseEntity<String> confirmBooking(@RequestBody Boolean isConfirmed, @RequestBody EntityBooking booking) {
-        serviceBooking.confirmBooking(isConfirmed, booking);
+    @PostMapping("/confirm/{bookingId}")
+    public ResponseEntity<String> confirmBooking(@PathVariable Long bookingId) {
+        serviceBooking.confirmBooking(bookingId);
         return ResponseEntity.ok("Reserva confirmada");
     }
+
+    /**
+     * Método para cancelar una reserva
+     * @param bookingId ID de la reserva
+     */
+    @PostMapping("/cancel/{bookingId}")
+    public ResponseEntity<String> cancelBooking(@PathVariable Long bookingId) {
+        serviceBooking.cancelBooking(bookingId);
+        return ResponseEntity.ok("Reserva cancelada");
+    }
+
+    /**
+     * Método para obtener una lista de reservas
+     * @return Lista de reservas
+     */
+    @GetMapping("/getBookings")
+    public ResponseEntity<List<EntityBooking>> getBookings() {
+        List<EntityBooking> bookings = serviceBooking.getBookings();
+        return ResponseEntity.ok(bookings);
+    }
+
+    /**
+     * Método para obtener una lista de reservas por fecha
+     */
+    @GetMapping("/getBookingTimesByDate/{date}")
+    public ResponseEntity<List<LocalTime>> getTimesByDate(@PathVariable LocalDate date) {
+        List<LocalTime> times = serviceBooking.getTimesByDate(date);
+        return ResponseEntity.ok(times);
+    }
+
 }

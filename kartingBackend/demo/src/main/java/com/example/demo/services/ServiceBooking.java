@@ -4,12 +4,14 @@ import com.example.demo.entities.EntityBooking;
 import com.example.demo.entities.EntityClient;
 import com.example.demo.repositories.RepoBooking;
 import com.example.demo.repositories.RepoClient;
+import com.example.demo.repositories.RepoVoucher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,6 +21,8 @@ public class ServiceBooking {
     RepoBooking repoBooking;
     @Autowired
     RepoClient repoClient;
+    @Autowired
+    private RepoVoucher repoVoucher;
 
     /**
      * Método para guardar una reserva
@@ -39,6 +43,7 @@ public class ServiceBooking {
                 return;
             }
         }
+        booking.setPrice(String.valueOf(basePrice));
 
         String[] clientsRUT = booking.getClientsRUT().split(",");
 
@@ -47,7 +52,7 @@ public class ServiceBooking {
         }
 
         // Calcular precio final con descuentos
-        String discountsList = discountsAplied(clientsRUT, booking, repoClient);
+        String discountsList = discountsApplied(clientsRUT, booking, repoClient);
         String totalPrice = totalPriceWithDiscount(basePrice, discountsList);
         booking.setTotalPrice(totalPrice);
 
@@ -157,16 +162,17 @@ public class ServiceBooking {
     }
 
     /**
-     * Método para aplicar los descuentos a los clietnes registrados según corresponda
+     * Método para aplicar los descuentos a los clientes registrados según corresponda
      * @param clientRuts lista de RUTs de los clientes
      * @param booking objeto de tipo EntityBooking
      * @param repoClient repositorio de clientes
      * @return lista de descuentos aplicados a cada cliente
      */
-    public String discountsAplied(String[] clientRuts, EntityBooking booking, RepoClient repoClient){
+    public String discountsApplied(String[] clientRuts, EntityBooking booking, RepoClient repoClient){
         String bookingDayMonth = booking.getBookingDate().format(DateTimeFormatter.ofPattern("dd-MM"));
         Integer numOfPeople = booking.getNumOfPeople();
         StringBuilder discountsList = new StringBuilder();
+        StringBuilder discountsListType = new StringBuilder();
         int discount;
 
         if (1 == numOfPeople || numOfPeople == 2) {
@@ -179,51 +185,67 @@ public class ServiceBooking {
                             : (visitsPerMonth >= 7) ? 30
                             : 0;
                     client.setVisistsPerMonth(visitsPerMonth + 1);
+                    discountsListType.append("visitas,");
                 } else {
                     discount = 0; // Si el cliente no está registrado, no se aplica descuento
+                    discountsListType.append("no,");
                 }
                 discountsList.append(discount).append(",");
             }
         }
         if (3 <= numOfPeople && numOfPeople <= 5) {
-            int bDayDiscountAplied = 0;
+            int bDayDiscountApplied = 0;
             for (String rut : clientRuts) {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
                     Integer visitsPerMonth = client.getVisistsPerMonth();
                     String clientBirthday = client.getClientBirthday();
-                    if (bDayDiscountAplied == 0 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
+                    if (bDayDiscountApplied == 0 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
                         discount = 50;
-                        bDayDiscountAplied = 1;
+                        bDayDiscountApplied = 1;
+                        discountsListType.append("cumpleaños,");
                     } else {
                         discount = (5 == visitsPerMonth || visitsPerMonth == 6) ? 20
                                 : (visitsPerMonth >= 7) ? 30
                                 : 10; // Descuento por grupo de 3 a 5 personas
+                        if (discount == 10) {
+                            discountsListType.append("integrantes,");
+                        }else {
+                            discountsListType.append("visitas,");
+                        }
                     }
                     client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
                     discount = 0; // Si el cliente no está registrado, no se aplica descuento
+                    discountsListType.append("no,");
                 }
                 discountsList.append(discount).append(",");
             }
         }
         if (6 <= numOfPeople && numOfPeople <= 10) {
-            int bDayDiscountAplied = 0;
+            int bDayDiscountApplied = 0;
             for (String rut : clientRuts) {
                 EntityClient client = repoClient.findByClientRUT(rut);
                 if (client != null) {
                     Integer visitsPerMonth = client.getVisistsPerMonth();
                     String clientBirthday = client.getClientBirthday();
-                    if (bDayDiscountAplied < 3 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
+                    if (bDayDiscountApplied < 3 && clientBirthday != null && clientBirthday.substring(0, 5).equals(bookingDayMonth)) {
                         discount = 50;
-                        bDayDiscountAplied += 1;
+                        bDayDiscountApplied += 1;
+                        discountsListType.append("cumpleaños,");
                     } else {
                         discount = (visitsPerMonth >= 7) ? 30
                                 : 20; // Descuento por el grupo de 6 a 10 personas
+                        if (discount == 20) {
+                            discountsListType.append("integrantes,");
+                        }else {
+                            discountsListType.append("visitas,");
+                        }
                     }
                     client.setVisistsPerMonth(visitsPerMonth + 1);
                 } else {
                     discount = 0; // Si el cliente no está registrado, no se aplica descuento
+                    discountsListType.append("no,");
                 }
                 discountsList.append(discount).append(",");
             }
@@ -235,12 +257,16 @@ public class ServiceBooking {
                     Integer visitsPerMonth = client.getVisistsPerMonth();
                     discount = 30; // Descuento por grupo de 11 a 15 personas
                     client.setVisistsPerMonth(visitsPerMonth + 1);
+                    discountsListType.append("integrantes,");
                 } else {
                     discount = 0; // Si el cliente no está registrado, no se aplica descuento
+                    discountsListType.append("no,");
                 }
                 discountsList.append(discount).append(",");
             }
         }
+        // Guardar los nombres de los descuentos aplicados en la reserva
+        booking.setDiscounts(discountsListType.toString());
         // Convertir cada Integer a String
         return discountsList.toString();
     }
@@ -263,19 +289,63 @@ public class ServiceBooking {
     }
 
     /**
-     * Método para confirmar o cancelar una reserva
-     * @param isConfirmed
-     * @param booking
-     * @return true si la reserva fue confirmada, false en caso contrario
+     * Método para calcular el precio total con IVA
      */
-    public Boolean confirmBooking(Boolean isConfirmed, EntityBooking booking) {
-        // Lógica para confirmar la reserva
-        if (isConfirmed) {
-            booking.setBookingStatus("confirmada");
-            return true;
-        } else {
-            booking.setBookingStatus("cancelada");
-            return false;
+    public String calculateTotalWithIva(String totalPrice, Integer iva) {
+        List<String> totalPriceList = List.of(totalPrice.split(","));
+        StringBuilder totalWithIva = new StringBuilder();
+        for (String total : totalPriceList) {
+            Integer price = Integer.parseInt(total);
+            Integer ivaValue = price + (price * iva / 100);
+            Integer totalWithIvaValue = price + ivaValue;
+            totalWithIva.append(totalWithIvaValue).append(",");
         }
+        return String.valueOf(totalWithIva);
     }
+
+    /**
+     * Método para confirmar una reserva
+     * @param bookingId id de la reserva
+     */
+    public void confirmBooking(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+        booking.setBookingStatus("confirmada");
+        // Calcular el total con IVA
+        String totalWithIva = calculateTotalWithIva(booking.getTotalPrice(), booking.getIva());
+        booking.setTotalWithIva(totalWithIva);
+        repoBooking.save(booking);
+    }
+
+    /**
+     * Método para cancelar una reserva
+     * @param bookingId id de la reserva
+     */
+    public void cancelBooking(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+        booking.setBookingStatus("cancelada");
+        repoBooking.save(booking);
+    }
+
+    /**
+     * Método para obtener una lista de reservas
+     */
+    public List<EntityBooking> getBookings() {
+        return repoBooking.findByBookingStatusContains("confirmada");
+    }
+
+    /**
+     * Método para obtener una lista de reservas por fecha
+     */
+    public List<LocalTime> getTimesByDate(LocalDate date){
+        List<EntityBooking> bookings = repoBooking.findByBookingDate(date);
+        List<LocalTime> times = new ArrayList<>();
+        for (EntityBooking booking : bookings) {
+            times.add(booking.getBookingTime());
+            times.add(booking.getBookingTimeEnd());
+        }
+        return times;
+    }
+
 }

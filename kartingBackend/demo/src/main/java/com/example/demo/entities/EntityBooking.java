@@ -28,12 +28,17 @@ public class EntityBooking {
     private Integer lapsOrMaxTimeAllowed;
     private Integer numOfPeople;
     private String clientsRUT; // Lista con los rut de los clientes
-    private String clientsNames; //
+    private String clientsNames; // Lista con los nombres de los clientes
     private String clientsEmails; // Lista con los correos de los clientes
 
-    private String totalPrice; // Tarifa base *evaluar si eliminar y dejar en el comprobante
+    private String price; // Tarifa base
+    private String discounts; // Descuentos aplicados (cumpleaños, integrantes, visitas)
+    private String totalPrice; // Tarifa con descuentos aplicados
 
-    private String bookingStatus; // Estado de la reserva (confirmada, no confirmada, cancelada)
+    private String bookingStatus; // Estado de la reserva (confirmada, sin confirmar, cancelada)
+
+    private Integer Iva = 19; // Porcentaje impuesto
+    private String totalWithIva; // Total con impuesto
 
 
 }

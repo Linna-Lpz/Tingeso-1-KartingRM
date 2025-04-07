@@ -1,0 +1,106 @@
+package com.example.demo.services;
+
+import com.example.demo.entities.EntityBooking;
+import com.example.demo.entities.EntityVoucher;
+import com.example.demo.repositories.RepoBooking;
+import com.example.demo.repositories.RepoVoucher;
+import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+
+@Service
+public class ServiceVoucher {
+    @Autowired
+    RepoVoucher repoVoucher;
+    @Autowired
+    RepoBooking repoBooking;
+
+    /**
+     * Método para exportar el comprobante a Excel
+     */
+    public ResponseEntity<byte[]> exportVoucherToExcel(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Comprobante");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {
+                    "ID Reserva", "Fecha de Reserva", "Hora de Reserva",
+                    "Vueltas o tiempo reservado", "Personas incluidas",
+                    "Cliente que realizó la Reserva", "Nombre del Cliente",
+                    "Precio Base", "Descuento", "Precio Total", "IVA (%)", "Total con IVA"
+            };
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.autoSizeColumn(i);
+            }
+
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            String[] clientNames = booking.getClientsNames().split(",");
+            String[] discounts = booking.getDiscounts().split(",");
+            String[] totalPrices = booking.getTotalPrice().split(",");
+            String[] totalWithIva = booking.getTotalWithIva().split(",");
+
+            for (int j = 0; j < booking.getNumOfPeople(); j++) {
+                Row dataRow = sheet.createRow(j + 1);
+
+                dataRow.createCell(0).setCellValue(booking.getId() != null ? booking.getId() : 0);
+                dataRow.createCell(1).setCellValue(booking.getBookingDate() != null ? booking.getBookingDate().format(dateFormatter) : "");
+                dataRow.createCell(2).setCellValue(booking.getBookingTime() != null ? booking.getBookingTime().format(timeFormatter) : "");
+                dataRow.createCell(3).setCellValue(booking.getLapsOrMaxTimeAllowed() != null ? booking.getLapsOrMaxTimeAllowed() : 0);
+                dataRow.createCell(4).setCellValue(booking.getNumOfPeople() != null ? booking.getNumOfPeople() : 0);
+                dataRow.createCell(5).setCellValue(clientNames.length > 0 ? clientNames[0] : "");
+                dataRow.createCell(6).setCellValue(clientNames.length > j ? clientNames[j] : "");
+                dataRow.createCell(7).setCellValue(booking.getPrice() != null ? booking.getPrice() : "");
+                dataRow.createCell(8).setCellValue(discounts.length > j ? discounts[j] : "");
+                dataRow.createCell(9).setCellValue(totalPrices.length > j ? totalPrices[j] : "");
+                dataRow.createCell(10).setCellValue(booking.getIva() != null ? booking.getIva() : 0);
+                dataRow.createCell(11).setCellValue(totalWithIva.length > j ? totalWithIva[j] : "");
+            }
+
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+
+            byte[] excelBytes = outputStream.toByteArray();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment", "Comprobante_" + booking.getId() + ".xlsx");
+
+            return ResponseEntity
+                    .ok()
+                    .headers(headers)
+                    .body(excelBytes);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error al generar el archivo Excel del comprobante: " + e.getMessage());
+        }
+    }
+}
