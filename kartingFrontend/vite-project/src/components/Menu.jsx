@@ -35,11 +35,25 @@ export default function Sidemenu({ open, toggleDrawer }) {
 
         <Divider />
 
+        <ListItemButton onClick={() => navigate("/clientRegister")}>
+          <ListItemIcon>
+            <PeopleAltIcon />
+          </ListItemIcon>
+          <ListItemText primary="Registro de cliente" />
+        </ListItemButton>
+
         <ListItemButton onClick={() => navigate("/KartBookingForm")}>
           <ListItemIcon>
             <PeopleAltIcon />
           </ListItemIcon>
           <ListItemText primary="Formulario de reserva" />
+        </ListItemButton>
+
+        <ListItemButton onClick={() => navigate("/RackWeekly")}>
+          <ListItemIcon>
+            <PeopleAltIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reservas semanales" />
         </ListItemButton>
 
       </List>

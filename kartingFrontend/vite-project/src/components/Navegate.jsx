@@ -9,7 +9,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Menu from "./Menu";
 import { useState } from "react";
 
-export default function Navbar() {
+export default function Navegate() {
   const [open, setOpen] = useState(false);
 
   const toggleDrawer = (open) => (event) => {
@@ -35,6 +35,7 @@ export default function Navbar() {
             
           </Typography>
           <Button color="inherit">Login</Button>
+          Arriendo de Karts
         </Toolbar>
       </AppBar>
 
