@@ -1,9 +1,13 @@
 package com.example.demo.services;
 
 import com.example.demo.entities.EntityBooking;
-import com.example.demo.entities.EntityVoucher;
 import com.example.demo.repositories.RepoBooking;
-import com.example.demo.repositories.RepoVoucher;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -14,18 +18,23 @@ import org.springframework.stereotype.Service;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ServiceVoucher {
-    @Autowired
-    RepoVoucher repoVoucher;
     @Autowired
     RepoBooking repoBooking;
 
     /**
      * Método para exportar el comprobante a Excel
+     * @param bookingId ID de la reserva
+     * @return ResponseEntity con el archivo Excel
      */
     public ResponseEntity<byte[]> exportVoucherToExcel(Long bookingId) {
         EntityBooking booking = repoBooking.findById(bookingId)
@@ -102,5 +111,86 @@ public class ServiceVoucher {
         } catch (IOException e) {
             throw new RuntimeException("Error al generar el archivo Excel del comprobante: " + e.getMessage());
         }
+    }
+
+    /**
+     * Método para exportar el comprobante a PDF
+     * @return ResponseEntity con el archivo PDF
+     */
+    public ResponseEntity<byte[]> convertExcelToPdf(Long bookingId) {
+        ResponseEntity<byte[]> excelResponse = exportVoucherToExcel(bookingId);
+
+        try (InputStream is = new ByteArrayInputStream(Objects.requireNonNull(excelResponse.getBody()));
+             Workbook workbook = new XSSFWorkbook(is);
+             ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            Document document = new Document();
+            PdfWriter.getInstance(document, pdfOutputStream);
+            document.open();
+
+            // Extract the header row
+            Row headerRow = sheet.getRow(0);
+            List<String> headers = new ArrayList<>();
+            for (Cell cell : headerRow) {
+                headers.add(getCellValueAsString(cell));
+            }
+
+            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) { // Skip header row
+                Row row = sheet.getRow(rowIndex);
+
+                if (row == null) continue;
+
+                PdfPTable pdfTable = new PdfPTable(row.getLastCellNum());
+                pdfTable.setWidthPercentage(100);
+
+                // Add header row to the table
+                for (String header : headers) {
+                    PdfPCell headerCell = new PdfPCell(new Phrase(header));
+                    headerCell.setBackgroundColor(new BaseColor(230, 230, 250)); // Optional: Add background color
+                    pdfTable.addCell(headerCell);
+                }
+
+                // Add data row to the table
+                for (Cell cell : row) {
+                    String value = getCellValueAsString(cell);
+                    PdfPCell pdfCell = new PdfPCell(new Phrase(value));
+                    pdfTable.addCell(pdfCell);
+                }
+
+                document.add(pdfTable);
+                document.newPage(); // Add a new page for the next row
+            }
+
+            document.close();
+
+            byte[] pdfBytes = pdfOutputStream.toByteArray();
+
+            HttpHeaders headersHttp = new HttpHeaders();
+            headersHttp.setContentType(MediaType.APPLICATION_PDF);
+            headersHttp.setContentDispositionFormData("attachment", "Comprobante_" + bookingId + ".pdf");
+
+            return ResponseEntity
+                    .ok()
+                    .headers(headersHttp)
+                    .body(pdfBytes);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error al convertir Excel a PDF: " + e.getMessage());
+        }
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) return "";
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> DateUtil.isCellDateFormatted(cell)
+                    ? cell.getDateCellValue().toString()
+                    : String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> cell.getCellFormula();
+            default -> "";
+        };
     }
 }
