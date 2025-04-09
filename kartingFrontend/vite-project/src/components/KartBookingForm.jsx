@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker, StaticTimePicker, DateCalendar } from '@mui/x-date-pickers';
+import { es } from 'date-fns/locale';
 import {
   Container,
   Typography,
@@ -13,238 +16,224 @@ import {
   Divider,
   Box
 } from '@mui/material';
-import {
-  CalendarToday,
-  AccessTime,
-  Person,
-  Add,
-  Remove,
-  DirectionsCar,
-  Email,
-  Badge,
-  Delete
-} from '@mui/icons-material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import bookingService from '../services/services.management';
 
+// Inicialización del formulario
 const KartBookingForm = () => {
   const [bookingDate, setBookingDate] = useState(null);
   const [bookingTime, setBookingTime] = useState(null);
-  const [lapsOrMaxTimeAllowed, setLapsOrMaxTimeAllowed] = useState(1);
+  const [bookingTimeFree, setBookingTimeFree] = useState([]);
+  const [lapsOrMaxTime, setLapsOrMaxTime] = useState(10);
   const [numOfPeople, setNumOfPeople] = useState(1);
-  
-  // Estado para manejar la lista de personas
   const [person, setPerson] = useState({ rut: '', name: '', email: '' });
   const [people, setPeople] = useState([]);
-  
-  // Estados para errores de validación
   const [errors, setErrors] = useState({});
 
-  // Función para validar el RUT
-  const validateRUT = (rut) => {
-    if (!rut) return false;
-    
-    // Eliminar puntos y guión
-    rut = rut.replace(/\./g, '').replace('-', '');
-    
-    // Obtener dígito verificador
-    const dv = rut.slice(-1);
-    const rutBody = rut.slice(0, -1);
-    
-    // Verificar que solo contenga números
-    if (!/^\d+$/.test(rutBody)) return false;
-    
-    // Algoritmo de validación de RUT
-    let sum = 0;
-    let multiplier = 2;
-    
-    for (let i = rutBody.length - 1; i >= 0; i--) {
-      sum += parseInt(rutBody.charAt(i)) * multiplier;
-      multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  // Función para obtener las horas reservadas
+  const reservedTimes = async () => {
+    setBookingTimeFree([]); // Limpia las horas reservadas previas
+    if (!bookingDate) return;
+
+    const date = bookingDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    try {
+      const response = await bookingService.getBookingTimesByDate(date); // Llamada a la API
+      console.log(response.data); // Verifica los datos recibidos
+      const times = response.data.map((time) => {
+        const [hour, minute] = time.split(':'); // Divide la hora en horas y minutos
+        const reservedTime = new Date(bookingDate); // Usa la fecha seleccionada
+        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0); // Establece la hora
+        return reservedTime;
+      });
+      setBookingTimeFree(times); // Guarda las horas reservadas en el estado
+    } catch (error) {
+      console.error('Error al obtener las horas reservadas:', error);
     }
-    
-    const expectedDV = 11 - (sum % 11);
-    const calculatedDV = expectedDV === 11 ? '0' : expectedDV === 10 ? 'K' : expectedDV.toString();
-    
-    return calculatedDV === dv.toUpperCase();
   };
 
-  // Función para añadir una persona a la lista
-  const addPerson = () => {
-    // Validar campos
+  // Función para manejar el cambio de fecha y llama a la función para obtener las horas reservadas
+  const handleDateChange = (newDate) => {
+    setBookingDate(newDate);
+    if (newDate) {
+      reservedTimes(); // Llama a la función para obtener las horas reservadas
+    }
+  };
+
+  // Función para validar de los datos del cliente que reserva
+  const validatePerson = () => {
     const newErrors = {};
-    
-    if (!person.rut) {
-      newErrors.rut = 'RUT es requerido';
-    } else if (!validateRUT(person.rut)) {
-      newErrors.rut = 'RUT inválido';
-    }
-    
+    if (!person.rut) newErrors.rut = 'RUT es requerido';
     if (!person.name) newErrors.name = 'Nombre es requerido';
-    if (!person.email) {
-      newErrors.email = 'Email es requerido';
-    } else if (!/^\S+@\S+\.\S+$/.test(person.email)) {
-      newErrors.email = 'Email inválido';
-    }
-    
+    if (!person.email) newErrors.email = 'Email es requerido';
+    return newErrors;
+  };
+
+  // Función para añadir una persona a la lista de participantes
+  const addPerson = () => {
+    const newErrors = validatePerson();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
-    // Si pasa validación, añadir a la lista
-    if (people.length < numOfPeople) {
-      setPeople([...people, person]);
-      setPerson({ rut: '', name: '', email: '' });
-      setErrors({});
-    }
+    setPeople([...people, person]);
+    setPerson({ rut: '', name: '', email: '' });
+    setErrors({});
   };
 
-  // Función para eliminar una persona de la lista
+  // Función para eliminar una persona de la lista de participantes
   const removePerson = (index) => {
     const updatedPeople = [...people];
     updatedPeople.splice(index, 1);
     setPeople(updatedPeople);
   };
 
-  // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validar que todos los datos requeridos estén completos
-    const formErrors = {};
-    
-    if (!bookingDate) formErrors.bookingDate = 'Fecha es requerida';
-    if (!bookingTime) formErrors.bookingTime = 'Hora es requerida';
-    if (lapsOrMaxTimeAllowed < 1) formErrors.lapsOrMaxTimeAllowed = 'Debe ser mayor a 0';
-    if (numOfPeople < 1) formErrors.numOfPeople = 'Debe ser mayor a 0';
-    if (people.length !== numOfPeople) formErrors.people = `Debe agregar ${numOfPeople} personas`;
-    
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
-      return;
-    }
-    
-    // Formatear datos para envío
-    const formattedDate = bookingDate ? format(bookingDate, 'dd-MM-yyyy') : '';
-    const formattedTime = bookingTime ? format(bookingTime, 'HH:mm') : '';
-    
-    const bookingData = {
-      bookingDate: formattedDate,
-      bookingTime: formattedTime,
-      lapsOrMaxTimeAllowed,
-      numOfPeople,
-      clientsRUT: people.map(p => p.rut).join(','),
-      clientsNames: people.map(p => p.name).join(','),
-      clientsEmails: people.map(p => p.email).join(',')
-    };
-    
-    console.log('Datos del formulario:', bookingData);
-    // Aquí podrías enviar los datos a tu API
-    alert('Reserva realizada con éxito!');
+  // Definición de días feriados MM-DD
+  const holidays = [
+    '01-01', // Año Nuevo
+    '05-01', // Día del Trabajador
+    '09-18', // Fiestas Patrias
+    '09-19', // Fiestas Patrias
+    '12-25', // Navidad
+  ];
+
+  // Función para verificar si la fecha es un feriado
+  const isHoliday = (date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Mes en formato MM
+    const day = date.getDate().toString().padStart(2, '0'); // Día en formato DD
+    const formattedDate = `${month}-${day}`; // Formato MM-DD
+    return holidays.includes(formattedDate);
   };
+
+  // Función para calcular la hora mínima
+  const getMinTime = () => {
+    if (!bookingDate) return new Date(); // Si no hay fecha seleccionada, devuelve la hora actual
+
+    const dayOfWeek = bookingDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6 || isHoliday(bookingDate)) {
+      // Sábado, domingo o feriado
+      return new Date(bookingDate.setHours(10, 0)); // 10:00
+    } else {
+      // Días de semana
+      return new Date(bookingDate.setHours(14, 0)); // 14:00
+    }
+  };
+
+  let blockDuration;
+  if(lapsOrMaxTime === 10) blockDuration = 30;
+  else if(lapsOrMaxTime === 15) blockDuration = 35;
+  else if(lapsOrMaxTime === 20) blockDuration = 40;
+
+  // Función para calcular el tiempo basado en vueltas o tiempo máximo
+  const calculateTime = () => {
+    
+  };
+
+  // Función para calcular la hora de término de la reserva
+  const calculateEndTime = (startTime, duration) => {
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + duration); // Suma la duración en minutos
+    return endTime;
+  };
+
+  // Función para manejar el cambio de hora seleccionada
+  const handleTimeChange = (newTime) => {
+    setBookingTime(newTime); // Establece la hora de inicio seleccionada
+
+    // Calcula la hora de término basada en lapsOrMaxTime
+    const duration = blockDuration; // Duración en minutos basada en lapsOrMaxTime
+    const endTime = calculateEndTime(newTime, duration);
+
+    console.log(`Hora de inicio: ${newTime}`);
+    console.log(`Hora de término: ${endTime}`);
+  };
+
+    // Función para manejar el envío del formulario
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      alert(`Reserva para el día ${bookingDate.AdapterDateFns()} y la hora ${bookingTime.toISOString()} realizada con éxito!`);
+    };  
+    
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h4" gutterBottom align="center">
             Reserva de Karts
           </Typography>
-          
+          <Divider sx={{ mb: 3 }} />
+
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Fecha y hora de reserva */}
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Fecha de Reserva"
-                  value={bookingDate}
-                  onChange={(newDate) => setBookingDate(newDate)}
-                  format="dd/MM/yyyy"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      error: !!errors.bookingDate,
-                      helperText: errors.bookingDate,
-                      InputProps: {
-                        startAdornment: <CalendarToday fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      }
-                    }
-                  }}
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <TimePicker
-                  label="Hora de Reserva"
-                  value={bookingTime}
-                  onChange={(newTime) => setBookingTime(newTime)}
-                  ampm={false}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      error: !!errors.bookingTime,
-                      helperText: errors.bookingTime,
-                      InputProps: {
-                        startAdornment: <AccessTime fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      }
-                    }
-                  }}
-                />
-              </Grid>
-              
-              {/* Número de vueltas o tiempo máximo */}
-              <Grid item xs={12} md={6}>
+            {/* Sección de detalles */}
+            <Typography variant="h6" gutterBottom>Detalles de la Actividad</Typography>
+            <Grid container spacing={2} sx={{ mb: 3 }} justifyContent={'center'}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Vueltas o tiempo máximo"
                   type="number"
-                  value={lapsOrMaxTimeAllowed}
-                  onChange={(e) => setLapsOrMaxTimeAllowed(parseInt(e.target.value) || 0)}
-                  InputProps={{
-                    startAdornment: <DirectionsCar fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />,
-                    inputProps: { min:10, max: 20, step:5}
-                  }}
-                  error={!!errors.lapsOrMaxTimeAllowed}
-                  helperText={errors.lapsOrMaxTimeAllowed}
+                  value={lapsOrMaxTime}
+                  onChange={(e) => setLapsOrMaxTime(parseInt(e.target.value) || 10)}
+                  slotProps={{ min: 10, max: 20, step: 5 }}
+                  sx={{ minWidth: 200 }}
                 />
               </Grid>
-              
-              {/* Número de personas */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Número de personas"
                   type="number"
                   value={numOfPeople}
-                  onChange={(e) => setNumOfPeople(parseInt(e.target.value) || 0)}
-                  InputProps={{
-                    startAdornment: <Person fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />,
-                    inputProps: { min: 1, max:15 }
-                  }}
-                  error={!!errors.numOfPeople}
-                  helperText={errors.numOfPeople}
+                  onChange={(e) => setNumOfPeople(parseInt(e.target.value) || 1)}
+                  slotProps={{ min: 1, max: 15 }}
+                  sx={{ minWidth: 200 }}
                 />
               </Grid>
-              
-              <Grid item xs={12}>
-                <Divider sx={{ mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Datos de las personas ({people.length} de {numOfPeople})
-                </Typography>
-                {errors.people && (
-                  <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-                    {errors.people}
-                  </Typography>
-                )}
+            </Grid>
+
+            {/* Sección de fecha y hora */}
+            <Typography variant="h6" gutterBottom>Información de la Reserva</Typography>
+            <Grid container spacing={2} sx={{ mb: 3 }} justifyContent={'center'}>
+              <Grid item xs={12} sm={6}>
+                <DateCalendar
+                  label="Fecha de Reserva"
+                  value={bookingDate}
+                  onChange={handleDateChange} // Usa el manejador para actualizar la fecha y llamar a reservedTimes
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true
+                    }
+                  }}
+                />
               </Grid>
-              
-              {/* Formulario para agregar personas */}
-              <Grid item xs={12} md={4}>
+              // BookingTime
+              <Grid item xs={12} sm={6}>
+              <StaticTimePicker
+                label="Hora de Reserva"
+                value={bookingTime}
+                onChange={(newValue) => handleTimeChange(newValue)}
+                renderInput={(params) => <TextField {...params} fullWidth required />}
+                views={['hours', 'minutes']}
+                minTime={getMinTime()} // Hora mínima dinámica
+                maxTime={new Date(bookingDate?.setHours(22, 0, 0, 0))} // Hora máxima fija: 22:00
+                shouldDisableTime={(timeValue, clockType) => {
+                  if (clockType === 'hours') {
+                    return bookingTimeFree.some((reservedTime) => {
+                      const reservedHour = reservedTime.getHours();
+                      return timeValue === reservedHour;
+                    });
+                  }
+                }}
+              />
+              </Grid>
+            </Grid>
+
+            {/* Sección de participantes */}
+            <Typography variant="h6" gutterBottom>Datos de los Participantes</Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   label="RUT"
@@ -253,13 +242,9 @@ const KartBookingForm = () => {
                   onChange={(e) => setPerson({ ...person, rut: e.target.value })}
                   error={!!errors.rut}
                   helperText={errors.rut}
-                  InputProps={{
-                    startAdornment: <Badge fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   label="Nombre"
@@ -267,80 +252,69 @@ const KartBookingForm = () => {
                   onChange={(e) => setPerson({ ...person, name: e.target.value })}
                   error={!!errors.name}
                   helperText={errors.name}
-                  InputProps={{
-                    startAdornment: <Person fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={person.email}
-                    onChange={(e) => setPerson({ ...person, email: e.target.value })}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    InputProps={{
-                      startAdornment: <Email fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                    }}
-                  />
-                  <IconButton 
-                    color="primary"
-                    onClick={addPerson}
-                    disabled={people.length >= numOfPeople}
-                    sx={{ ml: 1, mt: 1 }}
-                  >
-                    <Add />
-                  </IconButton>
-                </Box>
-              </Grid>
-              
-              {/* Lista de personas agregadas */}
-              <Grid item xs={12}>
-                <Paper variant="outlined" sx={{ maxHeight: 300, overflow: 'auto', p: 0 }}>
-                  <List dense>
-                    {people.map((p, index) => (
-                      <React.Fragment key={index}>
-                        <ListItem
-                          secondaryAction={
-                            <IconButton edge="end" onClick={() => removePerson(index)}>
-                              <Delete />
-                            </IconButton>
-                          }
-                        >
-                          <ListItemText
-                            primary={`${p.name} (${p.rut})`}
-                            secondary={p.email}
-                          />
-                        </ListItem>
-                        {index < people.length - 1 && <Divider />}
-                      </React.Fragment>
-                    ))}
-                    {people.length === 0 && (
-                      <ListItem>
-                        <ListItemText secondary="No hay personas agregadas" />
-                      </ListItem>
-                    )}
-                  </List>
-                </Paper>
-              </Grid>
-              
-              {/* Botón de envío */}
-              <Grid item xs={12} sx={{ mt: 2 }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  size="large"
+              <Grid item xs={12} sm={4}>
+                <TextField
                   fullWidth
+                  label="Email"
+                  type="email"
+                  value={person.email}
+                  onChange={(e) => setPerson({ ...person, email: e.target.value })}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                />
+              </Grid>
+              <Grid item xs={12} sm={1} sx={{ display: 'flex', alignItems: 'center' }}>
+                <IconButton 
+                  color="primary" 
+                  onClick={addPerson}
+                  disabled={people.length >= numOfPeople}
                 >
-                  Realizar Reserva
-                </Button>
+                  <AddIcon />
+                </IconButton>
               </Grid>
             </Grid>
+
+            {/* Lista de participantes */}
+            <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto', mb: 3 }}>
+              <List dense>
+                {people.length === 0 ? (
+                  <ListItem>
+                    <ListItemText secondary="No hay personas agregadas" />
+                  </ListItem>
+                ) : (
+                  people.map((p, index) => (
+                    <ListItem 
+                      key={index}
+                      secondaryAction={
+                        <IconButton edge="end" onClick={() => removePerson(index)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText 
+                        primary={`${p.name} (${p.rut})`} 
+                        secondary={p.email} 
+                      />
+                    </ListItem>
+                  ))
+                )}
+              </List>
+            </Paper>
+
+            {/* Botón de envío */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                disabled={people.length < numOfPeople || !bookingDate || !bookingTime || !lapsOrMaxTime}
+              >
+                Realizar Reserva
+              </Button>
+            </Box>
           </form>
         </Paper>
       </Container>
