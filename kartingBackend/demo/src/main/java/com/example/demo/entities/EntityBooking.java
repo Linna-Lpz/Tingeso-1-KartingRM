@@ -22,7 +22,7 @@ public class EntityBooking {
     private LocalDate bookingDate; // DD-MM-YYYY
     @Column(name = "booking_time")
     private LocalTime bookingTime; // HH:MM
-    @Column(name = "total_duration_reservation")
+    @Column(name = "booking_time_end")
     private LocalTime bookingTimeEnd; // HH:MM Tiempo total duracion reserva
 
     private Integer lapsOrMaxTimeAllowed;

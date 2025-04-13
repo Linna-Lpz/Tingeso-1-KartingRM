@@ -1,21 +1,9 @@
 import React, { useState } from 'react';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker, StaticTimePicker, DateCalendar } from '@mui/x-date-pickers';
+import { LocalizationProvider, StaticTimePicker, DateCalendar } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Grid,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Box
-} from '@mui/material';
+import { Container, Typography, TextField, Button, Paper, Grid, 
+        IconButton, List, ListItem, ListItemText, Divider, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import bookingService from '../services/services.management';
@@ -24,39 +12,135 @@ import bookingService from '../services/services.management';
 const KartBookingForm = () => {
   const [bookingDate, setBookingDate] = useState(null);
   const [bookingTime, setBookingTime] = useState(null);
-  const [bookingTimeFree, setBookingTimeFree] = useState([]);
+  const [bookingTimeNoFree, setBookingTimeNoFree] = useState([]);
   const [lapsOrMaxTime, setLapsOrMaxTime] = useState(10);
   const [numOfPeople, setNumOfPeople] = useState(1);
   const [person, setPerson] = useState({ rut: '', name: '', email: '' });
   const [people, setPeople] = useState([]);
   const [errors, setErrors] = useState({});
 
-  // Función para obtener las horas reservadas
-  const reservedTimes = async () => {
-    setBookingTimeFree([]); // Limpia las horas reservadas previas
-    if (!bookingDate) return;
+  // Función para obtener los horarios reservados (inicio y fin) y bloquear los horarios intermedios
+  const fetchReservedTimes = async (date) => {
+    if (!date) return;
 
-    const date = bookingDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const formattedDate = date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
     try {
-      const response = await bookingService.getBookingTimesByDate(date); // Llamada a la API
-      console.log(response.data); // Verifica los datos recibidos
-      const times = response.data.map((time) => {
-        const [hour, minute] = time.split(':'); // Divide la hora en horas y minutos
-        const reservedTime = new Date(bookingDate); // Usa la fecha seleccionada
-        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0); // Establece la hora
+      const [startResponse] = await Promise.all([
+        bookingService.getBookingTimesByDate(formattedDate)
+      ]);
+      const [endResponse] = await Promise.all([
+        bookingService.getBookingTimesEndByDate(formattedDate)
+      ]);
+
+      console.log('Horarios de inicio:', startResponse.data);
+      console.log('Horarios de fin:', endResponse.data);
+
+      const reservedStartTimes = startResponse.data.map((time) => {
+        const [hour, minute] = time.split(':');
+        const reservedTime = new Date(date);
+        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0, 0);
         return reservedTime;
       });
-      setBookingTimeFree(times); // Guarda las horas reservadas en el estado
+
+      const reservedEndTimes = endResponse.data.map((time) => {
+        const [hour, minute] = time.split(':');
+        const reservedTime = new Date(date);
+        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0, 0);
+        return reservedTime;
+      });
+
+      const blockedTimes = [];
+      reservedStartTimes.forEach((startTime, index) => {
+        const endTime = reservedEndTimes[index];
+        let currentTime = new Date(startTime);
+        while (currentTime < endTime) {
+          blockedTimes.push(new Date(currentTime));
+          currentTime.setMinutes(currentTime.getMinutes() + 1);
+          console.log('Horarios reservados:', currentTime);
+        }
+      });
+
+      setBookingTimeNoFree(blockedTimes);
+
     } catch (error) {
-      console.error('Error al obtener las horas reservadas:', error);
+      console.error('Error al obtener los horarios reservados:', error);
     }
   };
+  
+  // Función para manejar el cambio de hora seleccionada
+  const handleTimeChange = (newTime) => {
+    setBookingTime(newTime);
+  };
 
-  // Función para manejar el cambio de fecha y llama a la función para obtener las horas reservadas
+    // Definición de días feriados MM-DD
+    const holidays = [
+      '01-01', // Año Nuevo
+      '05-01', // Día del Trabajador
+      '09-18', // Fiestas Patrias
+      '09-19', // Fiestas Patrias
+      '12-25', // Navidad
+    ];
+  
+    // Función para verificar si la fecha es un feriado
+    const isHoliday = (date) => {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Mes en formato MM
+      const day = date.getDate().toString().padStart(2, '0'); // Día en formato DD
+      const formattedDate = `${month}-${day}`; // Formato MM-DD
+      return holidays.includes(formattedDate);
+    };
+  
+    let blockDuration;
+    if(lapsOrMaxTime === 10) blockDuration = 30;
+    else if(lapsOrMaxTime === 15) blockDuration = 35;
+    else if(lapsOrMaxTime === 20) blockDuration = 40;
+  
+    // Función para calcular la hora de término de la reserva
+    const calculateEndTime = (startTime, duration) => {
+      const endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + duration); // Suma la duración en minutos
+      return endTime;
+    };
+
+  // Función para deshabilitar horarios reservados
+  const shouldDisableTime = (timeValue, view) => {
+    if (!bookingDate) return true;
+  
+    const date = new Date(bookingDate);
+    const hour = timeValue.getHours();
+    const minute = timeValue.getMinutes();
+  
+    const isWeekendOrHoliday = [0, 6].includes(date.getDay()) || isHoliday(date);
+    const openingHour = isWeekendOrHoliday ? 10 : 14;
+    const closingHour = 22;
+  
+    // Bloquear horas fuera de horario
+    if (view === 'hours') {
+      return hour < openingHour || hour >= closingHour;
+    }
+  
+    // Bloquear minutos fuera de horario
+    if (view === 'minutes') {
+      if (hour < openingHour || hour >= closingHour) return true;
+  
+      // Compara con los tiempos reservados
+      for (const reserved of bookingTimeNoFree) {
+        if (
+          reserved.getHours() === hour &&
+          reserved.getMinutes() === minute
+        ) {
+          return true;
+        }
+      }
+    }
+  
+    return false;
+  };
+  
+  // Función para manejar el cambio de fecha y obtener los horarios reservados
   const handleDateChange = (newDate) => {
     setBookingDate(newDate);
     if (newDate) {
-      reservedTimes(); // Llama a la función para obtener las horas reservadas
+      fetchReservedTimes(newDate); // Llama a la función unificada para obtener los horarios reservados
     }
   };
 
@@ -88,73 +172,49 @@ const KartBookingForm = () => {
     setPeople(updatedPeople);
   };
 
-  // Definición de días feriados MM-DD
-  const holidays = [
-    '01-01', // Año Nuevo
-    '05-01', // Día del Trabajador
-    '09-18', // Fiestas Patrias
-    '09-19', // Fiestas Patrias
-    '12-25', // Navidad
-  ];
+  // Función para manejar el envío del formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Función para verificar si la fecha es un feriado
-  const isHoliday = (date) => {
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Mes en formato MM
-    const day = date.getDate().toString().padStart(2, '0'); // Día en formato DD
-    const formattedDate = `${month}-${day}`; // Formato MM-DD
-    return holidays.includes(formattedDate);
-  };
+    if (!bookingDate || !bookingTime || people.length < numOfPeople || !lapsOrMaxTime) {
+      alert('Por favor, completa todos los campos requeridos antes de realizar la reserva.');
+      return;
+    }
 
-  // Función para calcular la hora mínima
-  const getMinTime = () => {
-    if (!bookingDate) return new Date(); // Si no hay fecha seleccionada, devuelve la hora actual
+    const duration = blockDuration;
+    const endTime = calculateEndTime(bookingTime, duration);
 
-    const dayOfWeek = bookingDate.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6 || isHoliday(bookingDate)) {
-      // Sábado, domingo o feriado
-      return new Date(bookingDate.setHours(10, 0)); // 10:00
-    } else {
-      // Días de semana
-      return new Date(bookingDate.setHours(14, 0)); // 14:00
+    // Desglosar los datos de los participantes
+    const clientsRUT = people.map(p => p.rut).join(',');
+    const clientsNames = people.map(p => p.name).join(',');
+    const clientsEmails = people.map(p => p.email).join(',');
+
+    const reservationData = {
+      bookingDate: bookingDate.toISOString().split('T')[0], // YYYY-MM-DD
+      bookingTime: bookingTime.toTimeString().slice(0,5),   // HH:MM
+      bookingTimeEnd: endTime.toTimeString().slice(0,5),    // HH:MM
+      lapsOrMaxTimeAllowed: lapsOrMaxTime,
+      numOfPeople,
+      clientsRUT,
+      clientsNames,
+      clientsEmails
+    };
+
+    try {
+      const response = await bookingService.saveBooking(reservationData);
+      console.log('Reserva guardada con éxito:', response.data);
+      alert('Reserva realizada con éxito.');
+
+      setBookingDate(null);
+      setBookingTime(null);
+      setPeople([]);
+    } catch (error) {
+      console.error('Error al guardar la reserva:', error);
+      alert('Ocurrió un error al guardar la reserva. Por favor, inténtalo de nuevo.');
     }
   };
 
-  let blockDuration;
-  if(lapsOrMaxTime === 10) blockDuration = 30;
-  else if(lapsOrMaxTime === 15) blockDuration = 35;
-  else if(lapsOrMaxTime === 20) blockDuration = 40;
-
-  // Función para calcular el tiempo basado en vueltas o tiempo máximo
-  const calculateTime = () => {
     
-  };
-
-  // Función para calcular la hora de término de la reserva
-  const calculateEndTime = (startTime, duration) => {
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + duration); // Suma la duración en minutos
-    return endTime;
-  };
-
-  // Función para manejar el cambio de hora seleccionada
-  const handleTimeChange = (newTime) => {
-    setBookingTime(newTime); // Establece la hora de inicio seleccionada
-
-    // Calcula la hora de término basada en lapsOrMaxTime
-    const duration = blockDuration; // Duración en minutos basada en lapsOrMaxTime
-    const endTime = calculateEndTime(newTime, duration);
-
-    console.log(`Hora de inicio: ${newTime}`);
-    console.log(`Hora de término: ${endTime}`);
-  };
-
-    // Función para manejar el envío del formulario
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      alert(`Reserva para el día ${bookingDate.AdapterDateFns()} y la hora ${bookingTime.toISOString()} realizada con éxito!`);
-    };  
-    
-
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -168,7 +228,7 @@ const KartBookingForm = () => {
             {/* Sección de detalles */}
             <Typography variant="h6" gutterBottom>Detalles de la Actividad</Typography>
             <Grid container spacing={2} sx={{ mb: 3 }} justifyContent={'center'}>
-              <Grid item xs={12} sm={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Vueltas o tiempo máximo"
@@ -179,7 +239,7 @@ const KartBookingForm = () => {
                   sx={{ minWidth: 200 }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Número de personas"
@@ -195,11 +255,11 @@ const KartBookingForm = () => {
             {/* Sección de fecha y hora */}
             <Typography variant="h6" gutterBottom>Información de la Reserva</Typography>
             <Grid container spacing={2} sx={{ mb: 3 }} justifyContent={'center'}>
-              <Grid item xs={12} sm={6}>
+              <Grid>
                 <DateCalendar
                   label="Fecha de Reserva"
                   value={bookingDate}
-                  onChange={handleDateChange} // Usa el manejador para actualizar la fecha y llamar a reservedTimes
+                  onChange={handleDateChange}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -208,25 +268,16 @@ const KartBookingForm = () => {
                   }}
                 />
               </Grid>
-              // BookingTime
-              <Grid item xs={12} sm={6}>
-              <StaticTimePicker
-                label="Hora de Reserva"
-                value={bookingTime}
-                onChange={(newValue) => handleTimeChange(newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth required />}
-                views={['hours', 'minutes']}
-                minTime={getMinTime()} // Hora mínima dinámica
-                maxTime={new Date(bookingDate?.setHours(22, 0, 0, 0))} // Hora máxima fija: 22:00
-                shouldDisableTime={(timeValue, clockType) => {
-                  if (clockType === 'hours') {
-                    return bookingTimeFree.some((reservedTime) => {
-                      const reservedHour = reservedTime.getHours();
-                      return timeValue === reservedHour;
-                    });
-                  }
-                }}
-              />
+              <Grid>
+                <StaticTimePicker
+                  label="Hora de Reserva"
+                  value={bookingTime}
+                  disabled={!bookingDate}
+                  onChange={handleTimeChange}
+                  renderInput={(params) => <TextField {...params} fullWidth required />}
+                  views={['hours', 'minutes']}
+                  shouldDisableTime={shouldDisableTime}
+                />
               </Grid>
             </Grid>
 
@@ -237,7 +288,7 @@ const KartBookingForm = () => {
                 <TextField
                   fullWidth
                   label="RUT"
-                  placeholder="12345678-9"
+                  placeholder="Formato 1111111111-1"
                   value={person.rut}
                   onChange={(e) => setPerson({ ...person, rut: e.target.value })}
                   error={!!errors.rut}

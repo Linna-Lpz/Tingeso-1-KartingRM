@@ -16,11 +16,21 @@ function getBookingTimesByDate(date){
     return axios.get(`${BOOKING_API_URL}/getBookingTimesByDate/${date}`);
 }
 
-// ------------------ Client ------------------
+function getBookingTimesEndByDate(date){
+    return axios.get(`${BOOKING_API_URL}/getBookingTimesEndByDate/${date}`)
+}
 
+// ------------------ Client ------------------
+function saveClient(client){
+    return axios.post(`${CLIENT_API_URL}/save`, client);
+}
+
+
+// ------------------ Export -------------------
 
 export default {
     saveBooking,
     getBooking,
-    getBookingTimesByDate
+    getBookingTimesByDate,
+    getBookingTimesEndByDate
 };

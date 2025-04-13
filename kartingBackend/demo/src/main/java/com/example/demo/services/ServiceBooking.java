@@ -290,6 +290,9 @@ public class ServiceBooking {
 
     /**
      * Método para calcular el precio total con IVA
+     * @param totalPrice precio total a pagar por cada cliente
+     * @param iva porcentaje de IVA
+     * @return precio total con IVA
      */
     public String calculateTotalWithIva(String totalPrice, Integer iva) {
         List<String> totalPriceList = List.of(totalPrice.split(","));
@@ -330,6 +333,7 @@ public class ServiceBooking {
 
     /**
      * Método para obtener una lista de reservas
+     * @return lista de reservas
      */
     public List<EntityBooking> getBookings() {
         return repoBooking.findByBookingStatusContains("confirmada");
@@ -337,15 +341,29 @@ public class ServiceBooking {
 
     /**
      * Método para obtener una lista de reservas por fecha
+     * @param date fecha de la reserva
+     * @return lista de horas de reserva
      */
     public List<LocalTime> getTimesByDate(LocalDate date){
         List<EntityBooking> bookings = repoBooking.findByBookingDate(date);
         List<LocalTime> times = new ArrayList<>();
         for (EntityBooking booking : bookings) {
             times.add(booking.getBookingTime());
-            times.add(booking.getBookingTimeEnd());
         }
         return times;
     }
 
+    /**
+     * Método para obtener una lista de reservas por fecha
+     * @param date fecha de la reserva
+     * @return lista de horas de reserva
+     */
+    public List<LocalTime> getTimesEndByDate(LocalDate date){
+        List<EntityBooking> bookings = repoBooking.findByBookingDate(date);
+        List<LocalTime> times = new ArrayList<>();
+        for (EntityBooking booking : bookings) {
+            times.add(booking.getBookingTimeEnd());
+        }
+        return times;
+    }
 }

@@ -69,4 +69,13 @@ public class ControlBooking {
         return ResponseEntity.ok(times);
     }
 
+    /**
+     * Método para obtener una lista de reservas por fecha
+     */
+    @GetMapping("/getBookingTimesEndByDate/{date}")
+    public ResponseEntity<List<LocalTime>> getTimesEndByDate(@PathVariable LocalDate date) {
+        List<LocalTime> times = serviceBooking.getTimesEndByDate(date);
+        return ResponseEntity.ok(times);
+    }
+
 }
