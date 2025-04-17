@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isSameQuarter } from "date-fns";
 
 const BOOKING_API_URL = "http://localhost:8090/booking";
 const CLIENT_API_URL = "http://localhost:8090/client";
@@ -32,5 +33,6 @@ export default {
     saveBooking,
     getBooking,
     getBookingTimesByDate,
-    getBookingTimesEndByDate
+    getBookingTimesEndByDate,
+    saveClient
 };

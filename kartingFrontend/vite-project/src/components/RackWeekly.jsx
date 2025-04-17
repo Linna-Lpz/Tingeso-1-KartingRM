@@ -41,9 +41,8 @@ const RackWeekly = () => {
   const [selectedMonth, setSelectedMonth] = useState(getMonth(currentDate));
   const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
   
-  // Estados para los datos y UI
+  // Estados para los datos
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Constantes para la interfaz
@@ -70,15 +69,12 @@ const RackWeekly = () => {
   // Obtener reservas del servicio
   const fetchBookings = async () => {
     try {
-      setLoading(true);
       const response = await bookingService.getBooking();
       setBookings(response.data);
       setError(null);
     } catch (err) {
       console.error("Error al obtener las reservas:", err);
       setError("No se pudieron cargar las reservas. Por favor, intente de nuevo más tarde.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -135,31 +131,22 @@ const RackWeekly = () => {
     setSelectedYear(event.target.value);
   };
 
-  // Mostrar estado de carga
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   // Mostrar si hay error
   if (error) {
     return <Alert severity="error">{error}</Alert>;
   }
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+    <Paper sx={{ width: '100%', overflow: 'hidden'}}>
       {/* Cabecera con controles de navegación */}
       <Box sx={{ p: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+          <Grid>
             <Typography variant="h6">Rack semanal de ocupación de la pista</Typography>
           </Grid>
           
           {/* Selector de mes y año */}
-          <Grid item xs={12} md={6}>
+          <Grid>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <Select
@@ -216,7 +203,7 @@ const RackWeekly = () => {
               </TableCell>
               
               {weekDays.map((day) => (
-                <TableCell key={day.toString()} align="center">
+                <TableCell key={day.toString()} align="center" sx={{ width: '100px', backgroundColor: '#f5f5f5' }}>
                   <Typography variant="subtitle1" fontWeight="bold">
                     {format(day, 'EEEE', { locale: es })}
                   </Typography>

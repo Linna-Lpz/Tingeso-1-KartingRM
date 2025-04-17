@@ -203,7 +203,6 @@ const KartBookingForm = () => {
     try {
       const response = await bookingService.saveBooking(reservationData);
       console.log('Reserva guardada con éxito:', response.data);
-      alert('Reserva realizada con éxito.');
 
       setBookingDate(null);
       setBookingTime(null);
@@ -212,9 +211,10 @@ const KartBookingForm = () => {
       console.error('Error al guardar la reserva:', error);
       alert('Ocurrió un error al guardar la reserva. Por favor, inténtalo de nuevo.');
     }
-  };
 
-    
+
+  };
+   
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -234,8 +234,8 @@ const KartBookingForm = () => {
                   label="Vueltas o tiempo máximo"
                   type="number"
                   value={lapsOrMaxTime}
-                  onChange={(e) => setLapsOrMaxTime(parseInt(e.target.value) || 10)}
-                  slotProps={{ min: 10, max: 20, step: 5 }}
+                  onChange={(e) => setLapsOrMaxTime(parseInt(e.target.value))}
+                  inputProps={{ min: 10, max: 20, step: 5 }}
                   sx={{ minWidth: 200 }}
                 />
               </Grid>
@@ -245,8 +245,8 @@ const KartBookingForm = () => {
                   label="Número de personas"
                   type="number"
                   value={numOfPeople}
-                  onChange={(e) => setNumOfPeople(parseInt(e.target.value) || 1)}
-                  slotProps={{ min: 1, max: 15 }}
+                  onChange={(e) => setNumOfPeople(parseInt(e.target.value))}
+                  inputProps={{ min: 1, max: 15 , step: 1}}
                   sx={{ minWidth: 200 }}
                 />
               </Grid>
@@ -274,7 +274,7 @@ const KartBookingForm = () => {
                   value={bookingTime}
                   disabled={!bookingDate}
                   onChange={handleTimeChange}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
+                  textField={(params) => <TextField {...params} fullWidth required />}
                   views={['hours', 'minutes']}
                   shouldDisableTime={shouldDisableTime}
                 />
@@ -284,7 +284,7 @@ const KartBookingForm = () => {
             {/* Sección de participantes */}
             <Typography variant="h6" gutterBottom>Datos de los Participantes</Typography>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={3}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="RUT"
@@ -295,7 +295,7 @@ const KartBookingForm = () => {
                   helperText={errors.rut}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Nombre"
@@ -305,7 +305,7 @@ const KartBookingForm = () => {
                   helperText={errors.name}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Email"
@@ -316,7 +316,7 @@ const KartBookingForm = () => {
                   helperText={errors.email}
                 />
               </Grid>
-              <Grid item xs={12} sm={1} sx={{ display: 'flex', alignItems: 'center' }}>
+              <Grid sx={{ display: 'flex', alignItems: 'center' }}>
                 <IconButton 
                   color="primary" 
                   onClick={addPerson}
@@ -356,14 +356,14 @@ const KartBookingForm = () => {
 
             {/* Botón de envío */}
             <Box sx={{ textAlign: 'center' }}>
-              <Button
+              <Button onClick={() => navigate("/statusBooking")}
                 type="submit"
                 variant="contained"
                 color="primary"
                 size="large"
                 disabled={people.length < numOfPeople || !bookingDate || !bookingTime || !lapsOrMaxTime}
               >
-                Realizar Reserva
+                Pagar y confirmar reserva
               </Button>
             </Box>
           </form>

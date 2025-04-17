@@ -17,9 +17,12 @@ export default function Navegate() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1 , maxWidth: "100%" }}>
       <AppBar position="static">
-        <Toolbar>
+        <Toolbar sx={{ 
+          background: "linear-gradient(90deg, #FF8C00 0%, #FFA500 100%)",
+          padding: "8px 16px"
+        }}>
           <IconButton
             size="large"
             edge="start"
@@ -29,13 +32,22 @@ export default function Navegate() {
             onClick={toggleDrawer(true)}
           >
             <MenuIcon />
+            <Typography variant="subtitle1" sx={{ ml: 1, fontWeight: "500" }}>
+              Menú
+            </Typography>
           </IconButton>
 
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            
+          <Typography 
+            variant="h5" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1, 
+              fontWeight: "bold",
+              letterSpacing: "1px",
+              textShadow: "1px 1px 2px rgba(0,0,0,0.2)"
+            }}
+          >
           </Typography>
-          <Button color="inherit">Login</Button>
-          Arriendo de Karts
         </Toolbar>
       </AppBar>
 

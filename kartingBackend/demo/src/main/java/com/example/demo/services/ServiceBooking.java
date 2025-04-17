@@ -4,7 +4,6 @@ import com.example.demo.entities.EntityBooking;
 import com.example.demo.entities.EntityClient;
 import com.example.demo.repositories.RepoBooking;
 import com.example.demo.repositories.RepoClient;
-import com.example.demo.repositories.RepoVoucher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +20,6 @@ public class ServiceBooking {
     RepoBooking repoBooking;
     @Autowired
     RepoClient repoClient;
-    @Autowired
-    private RepoVoucher repoVoucher;
 
     /**
      * Método para guardar una reserva
@@ -56,7 +53,11 @@ public class ServiceBooking {
         String totalPrice = totalPriceWithDiscount(basePrice, discountsList);
         booking.setTotalPrice(totalPrice);
 
-        booking.setBookingStatus("sin confirmar");
+        // Calcular el total con IVA
+        String totalWithIva = calculateTotalWithIva(booking.getTotalPrice(), booking.getIva());
+        booking.setTotalWithIva(totalWithIva);
+
+        booking.setBookingStatus("confirmada");
         repoBooking.save(booking);
     }
 
@@ -184,8 +185,13 @@ public class ServiceBooking {
                             : (5 == visitsPerMonth || visitsPerMonth == 6) ? 20
                             : (visitsPerMonth >= 7) ? 30
                             : 0;
+                    if(discount == 0){
+                        discountsListType.append("no,");
+                    } else{
+                        discountsListType.append("visitas,");
+                    }
                     client.setVisistsPerMonth(visitsPerMonth + 1);
-                    discountsListType.append("visitas,");
+
                 } else {
                     discount = 0; // Si el cliente no está registrado, no se aplica descuento
                     discountsListType.append("no,");
@@ -304,20 +310,6 @@ public class ServiceBooking {
             totalWithIva.append(totalWithIvaValue).append(",");
         }
         return String.valueOf(totalWithIva);
-    }
-
-    /**
-     * Método para confirmar una reserva
-     * @param bookingId id de la reserva
-     */
-    public void confirmBooking(Long bookingId) {
-        EntityBooking booking = repoBooking.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
-        booking.setBookingStatus("confirmada");
-        // Calcular el total con IVA
-        String totalWithIva = calculateTotalWithIva(booking.getTotalPrice(), booking.getIva());
-        booking.setTotalWithIva(totalWithIva);
-        repoBooking.save(booking);
     }
 
     /**

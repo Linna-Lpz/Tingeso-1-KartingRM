@@ -9,6 +9,7 @@ import {
   Box,
   Divider
 } from '@mui/material';
+import clientService from '../services/services.management';
 
 const ClientRegister = () => {
   const [clientRUT, setClientRut] = useState('');
@@ -17,9 +18,29 @@ const ClientRegister = () => {
   const [clientBirthday, setClientBirthday] = useState('');
   const [visitsPerMonth, setVisitsPerMonth] = useState(0);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert('Cliente registrado con éxito!');
+  const handleSubmit = async(e) => {
+    const newClient = {
+      clientRUT,
+      clientName,
+      clientEmail,
+      clientBirthday,
+      visitsPerMonth
+    };
+  
+    try {
+      const response = await clientService.saveClient(newClient);
+      console.log('Cliente creado:', response.data);
+      alert('Cliente creado con éxito!');
+  
+      setClientRut('');
+      setClientName('');
+      setClientEmail('');
+      setClientBirthday('');
+      setVisitsPerMonth(0);
+    } catch (error) {
+      console.error('Error al crear el cliente:', error);
+      alert('Error al crear el cliente. Por favor, intente nuevamente.');
+    }
   };
 
   return (
@@ -36,11 +57,11 @@ const ClientRegister = () => {
               Información del Cliente
             </Typography>
             <Grid container spacing={3} justifyContent="center">
-              <Grid item xs={12} md={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="RUT"
-                  placeholder="12345678-9"
+                  placeholder="Sin puntos ni guión"
                   value={clientRUT}
                   onChange={(e) => setClientRut(e.target.value)}
                   required
@@ -49,7 +70,7 @@ const ClientRegister = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Nombre"
@@ -58,7 +79,7 @@ const ClientRegister = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Email"
@@ -68,7 +89,7 @@ const ClientRegister = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid>
                 <TextField
                   fullWidth
                   label="Fecha de Nacimiento"
@@ -84,8 +105,8 @@ const ClientRegister = () => {
             </Grid>
           </Box>
 
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Button type="submit" variant="contained" color="primary" size="large">
+          <Box sx={{ textAlign: 'center', mt: 4, backgroundColor: "#FFA500"}}>
+            <Button type="submit" variant="conteined" color="primary" size="large">
               Registrar Cliente
             </Button>
           </Box>

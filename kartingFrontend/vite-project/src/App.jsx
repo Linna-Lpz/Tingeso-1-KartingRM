@@ -12,7 +12,7 @@ function App() {
           <div className="container">
           <Navegate></Navegate>
             <Routes>
-              <Route path="/home" element={<Home/>} />
+              <Route path="/" element={<Home/>} />
               <Route path='/kartBookingForm' element={<KartBookingForm/>} />
               <Route path="/clientRegister" element={<ClientRegister/>} />
               <Route path="/rackWeekly" element={<RackWeekly/>} />
