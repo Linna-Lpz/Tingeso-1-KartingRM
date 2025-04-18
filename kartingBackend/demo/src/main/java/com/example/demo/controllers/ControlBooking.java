@@ -32,6 +32,18 @@ public class ControlBooking {
     }
 
     /**
+     * Método para confirmar o cancelar una reserva
+     * @param bookingId ID de la reserva
+     *
+     */
+    @PostMapping("/confirm/{bookingId}")
+    public ResponseEntity<String> confirmBooking(@PathVariable Long bookingId) {
+        serviceBooking.confirmBooking(bookingId);
+        return ResponseEntity.ok("Reserva confirmada");
+    }
+
+
+    /**
      * Método para cancelar una reserva
      * @param bookingId ID de la reserva
      */
@@ -39,6 +51,17 @@ public class ControlBooking {
     public ResponseEntity<String> cancelBooking(@PathVariable Long bookingId) {
         serviceBooking.cancelBooking(bookingId);
         return ResponseEntity.ok("Reserva cancelada");
+    }
+
+    /**
+     * Método para obtener una lista de reservas de un cliente
+     * @param rut RUT del cliente
+     * @return Lista de reservas del cliente
+     */
+    @GetMapping("/getBookings/{rut}")
+    public ResponseEntity<List<EntityBooking>> getBookingsByUserRut(@PathVariable String rut) {
+        List<EntityBooking> bookings = serviceBooking.getBookingsByUserRut(rut);
+        return ResponseEntity.ok(bookings);
     }
 
     /**

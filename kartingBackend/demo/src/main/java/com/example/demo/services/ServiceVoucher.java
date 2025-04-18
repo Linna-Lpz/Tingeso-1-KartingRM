@@ -193,4 +193,8 @@ public class ServiceVoucher {
             default -> "";
         };
     }
+
+    /**
+     * Método para enviar un pdf por correo
+     */
 }

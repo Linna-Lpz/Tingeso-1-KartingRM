@@ -42,6 +42,15 @@ export default function Sidemenu({ open, toggleDrawer }) {
           <ListItemText primary="Registro de cliente" />
         </ListItemButton>
 
+        <ListItemButton onClick={() => navigate("/statusKartBooking")}>
+          <ListItemIcon>
+            <PeopleAltIcon />
+          </ListItemIcon>
+          <ListItemText primary="Mis reservas" />
+        </ListItemButton>
+
+        <Divider />
+
         <ListItemButton onClick={() => navigate("/KartBookingForm")}>
           <ListItemIcon>
             <PeopleAltIcon />

@@ -5,6 +5,7 @@ import Home from './components/Home';
 import KartBookingForm from './components/KartBookingForm';
 import Navegate from './components/Navegate';
 import RackWeekly from './components/RackWeekly';
+import StatusKartBooking from './components/StatusKartBooking';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
               <Route path='/kartBookingForm' element={<KartBookingForm/>} />
               <Route path="/clientRegister" element={<ClientRegister/>} />
               <Route path="/rackWeekly" element={<RackWeekly/>} />
+              <Route path="/statusKartBooking" element={<StatusKartBooking/>} />
             </Routes>
           </div>
       </Router>

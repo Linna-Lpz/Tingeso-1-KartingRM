@@ -7,6 +7,7 @@ import { Container, Typography, TextField, Button, Paper, Grid,
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import bookingService from '../services/services.management';
+import { useNavigate } from 'react-router-dom';
 
 // Inicialización del formulario
 const KartBookingForm = () => {
@@ -18,6 +19,7 @@ const KartBookingForm = () => {
   const [person, setPerson] = useState({ rut: '', name: '', email: '' });
   const [people, setPeople] = useState([]);
   const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
 
   // Función para obtener los horarios reservados (inicio y fin) y bloquear los horarios intermedios
   const fetchReservedTimes = async (date) => {
@@ -203,6 +205,7 @@ const KartBookingForm = () => {
     try {
       const response = await bookingService.saveBooking(reservationData);
       console.log('Reserva guardada con éxito:', response.data);
+      alert('Reserva guardada con éxito!');
 
       setBookingDate(null);
       setBookingTime(null);
@@ -356,14 +359,14 @@ const KartBookingForm = () => {
 
             {/* Botón de envío */}
             <Box sx={{ textAlign: 'center' }}>
-              <Button onClick={() => navigate("/statusBooking")}
+              <Button onClick={() => navigate("/statusKartBooking")}
                 type="submit"
                 variant="contained"
                 color="primary"
                 size="large"
                 disabled={people.length < numOfPeople || !bookingDate || !bookingTime || !lapsOrMaxTime}
               >
-                Pagar y confirmar reserva
+                Realizar reserva
               </Button>
             </Box>
           </form>

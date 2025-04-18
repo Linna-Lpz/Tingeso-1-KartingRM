@@ -1,5 +1,4 @@
 import axios from "axios";
-import { isSameQuarter } from "date-fns";
 
 const BOOKING_API_URL = "http://localhost:8090/booking";
 const CLIENT_API_URL = "http://localhost:8090/client";
@@ -13,12 +12,24 @@ function getBooking(){
     return axios.get(`${BOOKING_API_URL}/getBookings`);
 }
 
+function getBookingByUserRut(userRut){
+    return axios.get(`${BOOKING_API_URL}/getBookings/${userRut}`);
+}
+
 function getBookingTimesByDate(date){
     return axios.get(`${BOOKING_API_URL}/getBookingTimesByDate/${date}`);
 }
 
 function getBookingTimesEndByDate(date){
     return axios.get(`${BOOKING_API_URL}/getBookingTimesEndByDate/${date}`)
+}
+
+function confirmBooking(bookingId){
+    return axios.post(`${BOOKING_API_URL}/confirm/${bookingId}`);
+}
+
+function cancelBooking(bookingId){
+    return axios.post(`${BOOKING_API_URL}/cancel/${bookingId}`);
 }
 
 // ------------------ Client ------------------
@@ -32,7 +43,10 @@ function saveClient(client){
 export default {
     saveBooking,
     getBooking,
+    getBookingByUserRut,
     getBookingTimesByDate,
     getBookingTimesEndByDate,
+    confirmBooking,
+    cancelBooking,
     saveClient
 };

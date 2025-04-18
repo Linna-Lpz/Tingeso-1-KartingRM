@@ -13,4 +13,5 @@ import java.util.List;
 public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
     List<EntityBooking> findByBookingDate(LocalDate bookingDate);
     List<EntityBooking> findByBookingStatusContains(String status);
+    List<EntityBooking> findByClientsRUTContains(String rut);
 }

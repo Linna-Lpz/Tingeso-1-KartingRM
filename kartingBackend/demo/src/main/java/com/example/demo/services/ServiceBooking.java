@@ -57,7 +57,7 @@ public class ServiceBooking {
         String totalWithIva = calculateTotalWithIva(booking.getTotalPrice(), booking.getIva());
         booking.setTotalWithIva(totalWithIva);
 
-        booking.setBookingStatus("confirmada");
+        booking.setBookingStatus("sin confirmar");
         repoBooking.save(booking);
     }
 
@@ -313,6 +313,17 @@ public class ServiceBooking {
     }
 
     /**
+     * Método para confirmar una reserva
+     * @param bookingId id de la reserva
+     */
+    public void confirmBooking(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+        booking.setBookingStatus("confirmada");
+        repoBooking.save(booking);
+    }
+
+    /**
      * Método para cancelar una reserva
      * @param bookingId id de la reserva
      */
@@ -321,6 +332,30 @@ public class ServiceBooking {
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
         booking.setBookingStatus("cancelada");
         repoBooking.save(booking);
+    }
+
+    /**
+     * Método para obtener una lista de reservas de un cliente
+     * @param rut RUT del cliente
+     * @return lista de reservas
+     */
+    public List<EntityBooking> getBookingsByUserRut(String rut) {
+        List<EntityBooking> bookings = repoBooking.findByClientsRUTContains(rut);
+        List<EntityBooking> filteredBookings = new ArrayList<>();
+
+        if (bookings.isEmpty()) {
+            System.out.println("No se encontraron reservas para el cliente con RUT: " + rut);
+            return new ArrayList<>();
+        } else {
+            for (EntityBooking booking : bookings) {
+                // Verificar si el RUT del cliente coincide con el RUT de la reserva
+                List<String> clientsRUT = List.of(booking.getClientsRUT().split(","));
+                if (clientsRUT.get(0).equals(rut)) {
+                    filteredBookings.add(booking);
+                }
+            }
+        }
+        return filteredBookings;
     }
 
     /**
@@ -358,4 +393,6 @@ public class ServiceBooking {
         }
         return times;
     }
+
+
 }
