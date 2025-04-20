@@ -210,6 +210,7 @@ const KartBookingForm = () => {
       setBookingDate(null);
       setBookingTime(null);
       setPeople([]);
+      navigate("/statusKartBooking")
     } catch (error) {
       console.error('Error al guardar la reserva:', error);
       alert('Ocurrió un error al guardar la reserva. Por favor, inténtalo de nuevo.');
@@ -359,7 +360,7 @@ const KartBookingForm = () => {
 
             {/* Botón de envío */}
             <Box sx={{ textAlign: 'center' }}>
-              <Button onClick={() => navigate("/statusKartBooking")}
+              <Button
                 type="submit"
                 variant="contained"
                 color="primary"

@@ -1,0 +1,25 @@
+pipeline{
+    agent anystages{
+        stage("Build Frontend"){
+            steps{
+                chechout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Linna-Lpz/Tingeso-1-KartingRM']])
+                dir('kartingFrontend'){
+                    bat "npm install"
+                    bat "npm run build"
+                }
+            }
+        }
+        stage("Build and Push Docker Image"){
+            steps{
+                dir("kartingFrontend"){
+                    script{
+                        withDockerRegistry(credentialsId: 'docker-credentials'){
+                            bat "docker build -t calpz/kartingFrontend ."
+                            bat "docker push calpz/kartingFrontend"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

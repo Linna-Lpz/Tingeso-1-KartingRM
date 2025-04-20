@@ -37,8 +37,9 @@ public class EntityBooking {
 
     private String bookingStatus; // Estado de la reserva (confirmada, sin confirmar, cancelada)
 
-    private Integer Iva = 19; // Porcentaje impuesto
+    private String Iva = "19"; // Porcentaje impuesto
     private String totalWithIva; // Total con impuesto
+    private Integer totalAmount; // Suma de los valores por cliente (Precio final)
 
 
 }

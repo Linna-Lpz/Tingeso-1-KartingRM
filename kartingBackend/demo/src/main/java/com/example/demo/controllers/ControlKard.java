@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping
+@RequestMapping("/api/kard")
 @CrossOrigin(origins = "*")
 public class ControlKard {
     @Autowired

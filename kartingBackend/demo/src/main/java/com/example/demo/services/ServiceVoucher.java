@@ -4,6 +4,7 @@ import com.example.demo.entities.EntityBooking;
 import com.example.demo.repositories.RepoBooking;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
@@ -52,10 +53,8 @@ public class ServiceVoucher {
 
             Row headerRow = sheet.createRow(0);
             String[] columns = {
-                    "ID Reserva", "Fecha de Reserva", "Hora de Reserva",
-                    "Vueltas o tiempo reservado", "Personas incluidas",
-                    "Cliente que realizó la Reserva", "Nombre del Cliente",
-                    "Precio Base", "Descuento", "Precio Total", "IVA (%)", "Total con IVA"
+                    "Nombre integrante", "Tarifa base", "Tipo descuento",
+                    "Monto con descuento", "IVA (%)", "Monto total con IVA"
             };
 
             for (int i = 0; i < columns.length; i++) {
@@ -65,34 +64,36 @@ public class ServiceVoucher {
                 sheet.autoSizeColumn(i);
             }
 
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-
             String[] clientNames = booking.getClientsNames().split(",");
             String[] discounts = booking.getDiscounts().split(",");
             String[] totalPrices = booking.getTotalPrice().split(",");
             String[] totalWithIva = booking.getTotalWithIva().split(",");
+            Integer totalAmount = booking.getTotalAmount();
 
             for (int j = 0; j < booking.getNumOfPeople(); j++) {
                 Row dataRow = sheet.createRow(j + 1);
 
-                dataRow.createCell(0).setCellValue(booking.getId() != null ? booking.getId() : 0);
-                dataRow.createCell(1).setCellValue(booking.getBookingDate() != null ? booking.getBookingDate().format(dateFormatter) : "");
-                dataRow.createCell(2).setCellValue(booking.getBookingTime() != null ? booking.getBookingTime().format(timeFormatter) : "");
-                dataRow.createCell(3).setCellValue(booking.getLapsOrMaxTimeAllowed() != null ? booking.getLapsOrMaxTimeAllowed() : 0);
-                dataRow.createCell(4).setCellValue(booking.getNumOfPeople() != null ? booking.getNumOfPeople() : 0);
-                dataRow.createCell(5).setCellValue(clientNames.length > 0 ? clientNames[0] : "");
-                dataRow.createCell(6).setCellValue(clientNames.length > j ? clientNames[j] : "");
-                dataRow.createCell(7).setCellValue(booking.getPrice() != null ? booking.getPrice() : "");
-                dataRow.createCell(8).setCellValue(discounts.length > j ? discounts[j] : "");
-                dataRow.createCell(9).setCellValue(totalPrices.length > j ? totalPrices[j] : "");
-                dataRow.createCell(10).setCellValue(booking.getIva() != null ? booking.getIva() : 0);
-                dataRow.createCell(11).setCellValue(totalWithIva.length > j ? totalWithIva[j] : "");
+                dataRow.createCell(0).setCellValue(clientNames.length > j ? clientNames[j] : "");
+                dataRow.createCell(1).setCellValue(booking.getPrice() != null ? booking.getPrice() : "");
+                dataRow.createCell(2).setCellValue(discounts.length > j ? discounts[j] : "");
+                dataRow.createCell(3).setCellValue(totalPrices.length > j ? totalPrices[j] : "");
+                dataRow.createCell(4).setCellValue(booking.getIva() != null ? booking.getIva() : "");
+                dataRow.createCell(5).setCellValue(totalWithIva.length > j ? totalWithIva[j] : "");
             }
 
             for (int i = 0; i < columns.length; i++) {
-                sheet.autoSizeColumn(i);
+                sheet.autoSizeColumn(i); // Ajustar el ancho de la columna
             }
+
+            Row amountRow = sheet.createRow(booking.getNumOfPeople() + 2); // Crear fila para "Total a Pagar"
+            Cell cell = amountRow.createCell(columns.length - 1);
+            cell.setCellValue("Total a Pagar");
+            cell.setCellStyle(headerStyle);
+
+            // Crear fila debajo para el valor de totalAmount
+            Row totalAmountRow = sheet.createRow(booking.getNumOfPeople() + 3);
+            Cell totalAmountCell = totalAmountRow.createCell(columns.length - 1);
+            totalAmountCell.setCellValue(totalAmount);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
@@ -118,6 +119,18 @@ public class ServiceVoucher {
      * @return ResponseEntity con el archivo PDF
      */
     public ResponseEntity<byte[]> convertExcelToPdf(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+
+        Long id = booking.getId();
+        String bookingDate = booking.getBookingDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        String bookingTime = booking.getBookingTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+        String bookingTimeEnd = booking.getBookingTimeEnd().format(DateTimeFormatter.ofPattern("HH:mm"));
+        String lapsOrMaxTimeAllowed = booking.getLapsOrMaxTimeAllowed() != null ? booking.getLapsOrMaxTimeAllowed().toString() : "";
+        String numOfPeople = booking.getNumOfPeople() != null ? booking.getNumOfPeople().toString() : "";
+        String[] clientsNames = booking.getClientsNames().split(",");
+        String totalAmount = booking.getTotalAmount() != null ? booking.getTotalAmount().toString() : "";
+
         ResponseEntity<byte[]> excelResponse = exportVoucherToExcel(bookingId);
 
         try (InputStream is = new ByteArrayInputStream(Objects.requireNonNull(excelResponse.getBody()));
@@ -130,39 +143,57 @@ public class ServiceVoucher {
             PdfWriter.getInstance(document, pdfOutputStream);
             document.open();
 
-            // Extract the header row
+            // Se agregan los datos de la reserva como párrafos antes de la tabla
+            document.add(new Paragraph("Código de la reserva: " + id));
+            document.add(new Paragraph("Fecha de la reserva: " + bookingDate));
+            document.add(new Paragraph("Hora de la reserva: " + bookingTime));
+            document.add(new Paragraph("Hora de fin de la reserva: " + bookingTimeEnd));
+            document.add(new Paragraph("Vueltas o tiempo reservado: " + lapsOrMaxTimeAllowed));
+            document.add(new Paragraph("Personas incluidas: " + numOfPeople));
+            document.add(new Paragraph("Cliente que realizó la reserva: " + clientsNames[0]));
+
+            // Se agrega un espacio antes de la tabla
+            document.add(new Paragraph("\n"));
+
+            // Se extrae la primera fila como encabezado
             Row headerRow = sheet.getRow(0);
             List<String> headers = new ArrayList<>();
             for (Cell cell : headerRow) {
                 headers.add(getCellValueAsString(cell));
             }
 
-            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) { // Skip header row
+            // Se crea una tabla con el número de columnas del encabezado
+            PdfPTable pdfTable = new PdfPTable(headerRow.getLastCellNum());
+            pdfTable.setWidthPercentage(100);
+
+            // Se añaden los encabezados a la tabla
+            for (String header : headers) {
+                PdfPCell headerCell = new PdfPCell(new Phrase(header));
+                headerCell.setBackgroundColor(new BaseColor(230, 230, 250)); // Color de fondo para los encabezados
+                headerCell.setHorizontalAlignment(PdfPCell.ALIGN_CENTER); // Alinear texto al centro
+                headerCell.setPadding(8); // Añadir padding
+                pdfTable.addCell(headerCell);
+            }
+
+            // Se añaden las filas de datos a la tabla
+            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) { // Omite la fila de encabezado
                 Row row = sheet.getRow(rowIndex);
 
                 if (row == null) continue;
 
-                PdfPTable pdfTable = new PdfPTable(row.getLastCellNum());
-                pdfTable.setWidthPercentage(100);
-
-                // Add header row to the table
-                for (String header : headers) {
-                    PdfPCell headerCell = new PdfPCell(new Phrase(header));
-                    headerCell.setBackgroundColor(new BaseColor(230, 230, 250)); // Optional: Add background color
-                    pdfTable.addCell(headerCell);
-                }
-
-                // Add data row to the table
                 for (Cell cell : row) {
                     String value = getCellValueAsString(cell);
                     PdfPCell pdfCell = new PdfPCell(new Phrase(value));
+                    pdfCell.setHorizontalAlignment(PdfPCell.ALIGN_CENTER); // Alinear texto al centro
+                    pdfCell.setPadding(8); // Añadir padding
                     pdfTable.addCell(pdfCell);
                 }
-
-                document.add(pdfTable);
-                document.newPage(); // Add a new page for the next row
             }
 
+            // Se añade la tabla al documento
+            document.add(pdfTable);
+            // Se añade el precio total al final del documento
+            document.add(new Paragraph("Total a pagar: $" + totalAmount));
             document.close();
 
             byte[] pdfBytes = pdfOutputStream.toByteArray();

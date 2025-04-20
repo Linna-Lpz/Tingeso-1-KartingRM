@@ -77,6 +77,7 @@ const StatusKartBooking = () => {
               <p><strong>Vueltas o tiempo máx:</strong> {booking.lapsOrMaxTimeAllowed}</p>
               <p><strong>Cantidad de personas:</strong> {booking.numOfPeople}</p>
               <p><strong>Estado:</strong> {booking.bookingStatus}</p>
+              <p><strong>Valor total:</strong> {booking.totalAmount}</p>
 
               {booking.bookingStatus !== 'confirmed' && (
                 <button

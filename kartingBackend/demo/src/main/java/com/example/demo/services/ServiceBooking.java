@@ -57,6 +57,9 @@ public class ServiceBooking {
         String totalWithIva = calculateTotalWithIva(booking.getTotalPrice(), booking.getIva());
         booking.setTotalWithIva(totalWithIva);
 
+        // Calcular el monto total a pagar
+        booking.setTotalAmount(calculateTotalPrice(totalWithIva));
+
         booking.setBookingStatus("sin confirmar");
         repoBooking.save(booking);
     }
@@ -300,16 +303,36 @@ public class ServiceBooking {
      * @param iva porcentaje de IVA
      * @return precio total con IVA
      */
-    public String calculateTotalWithIva(String totalPrice, Integer iva) {
+    public String calculateTotalWithIva(String totalPrice, String iva) {
+        Integer ivaI = Integer.parseInt(iva);
         List<String> totalPriceList = List.of(totalPrice.split(","));
         StringBuilder totalWithIva = new StringBuilder();
         for (String total : totalPriceList) {
-            Integer price = Integer.parseInt(total);
-            Integer ivaValue = price + (price * iva / 100);
-            Integer totalWithIvaValue = price + ivaValue;
+            Integer price = Integer.parseInt(total); // Cambio a Double.parseDouble
+            System.out.println("Precio base: " + price);
+            Integer totalWithIvaValue = price + ((price * ivaI) / 100);
+            System.out.println("Precio total con IVA: " + totalWithIvaValue);
             totalWithIva.append(totalWithIvaValue).append(",");
         }
-        return String.valueOf(totalWithIva);
+        if (totalWithIva.length() > 0) {
+            totalWithIva.setLength(totalWithIva.length() - 1); // Elimina la última coma
+        }
+        return totalWithIva.toString();
+    }
+
+    /**
+     * Método para calcular el precio total a pagar
+     * @param totalWithIva precio total con IVA
+     * @return precio total a pagar
+     */
+    public Integer calculateTotalPrice(String totalWithIva) {
+        Integer totalPrice = 0;
+        List<String> totalWithIvaList = List.of(totalWithIva.split(","));
+        for (String total : totalWithIvaList) {
+            Integer price = Integer.parseInt(total);
+            totalPrice += price;
+        }
+        return totalPrice;
     }
 
     /**

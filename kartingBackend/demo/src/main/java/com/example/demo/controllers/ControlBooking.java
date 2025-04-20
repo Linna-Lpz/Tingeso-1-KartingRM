@@ -12,7 +12,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/booking")
+@RequestMapping("/api/booking")
 @CrossOrigin(origins = "*")
 
 public class ControlBooking {
