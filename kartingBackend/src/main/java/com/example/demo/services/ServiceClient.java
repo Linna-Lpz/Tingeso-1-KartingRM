@@ -42,4 +42,17 @@ public class ServiceClient {
             }
         }
     }
+
+    /**
+     * Método para obtener un cliente por su RUT
+     */
+    public EntityClient getClientByRut(String clientRUT) {
+        EntityClient client = repoClient.findByClientRUT(clientRUT);
+        if (client != null) {
+            return client;
+        } else {
+            System.out.println("El cliente no está registrado");
+            return null;
+        }
+    }
 }

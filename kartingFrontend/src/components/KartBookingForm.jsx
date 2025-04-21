@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, StaticTimePicker, DateCalendar } from '@mui/x-date-pickers';
+import { LocalizationProvider, DigitalClock, DateCalendar } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
 import { Container, Typography, TextField, Button, Paper, Grid, 
-        IconButton, List, ListItem, ListItemText, Divider, Box } from '@mui/material';
+        IconButton, List, ListItem, ListItemText, Divider, Box,
+        Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import bookingService from '../services/services.management';
+import clientService from '../services/services.management';
 import { useNavigate } from 'react-router-dom';
 
 // Inicialización del formulario
@@ -24,46 +26,40 @@ const KartBookingForm = () => {
   // Función para obtener los horarios reservados (inicio y fin) y bloquear los horarios intermedios
   const fetchReservedTimes = async (date) => {
     if (!date) return;
-
+  
     const formattedDate = date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
     try {
-      const [startResponse] = await Promise.all([
-        bookingService.getBookingTimesByDate(formattedDate)
-      ]);
-      const [endResponse] = await Promise.all([
+      const [startResponse, endResponse] = await Promise.all([
+        bookingService.getBookingTimesByDate(formattedDate),
         bookingService.getBookingTimesEndByDate(formattedDate)
       ]);
-
+  
       console.log('Horarios de inicio:', startResponse.data);
       console.log('Horarios de fin:', endResponse.data);
-
-      const reservedStartTimes = startResponse.data.map((time) => {
-        const [hour, minute] = time.split(':');
-        const reservedTime = new Date(date);
-        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0, 0);
-        return reservedTime;
-      });
-
-      const reservedEndTimes = endResponse.data.map((time) => {
-        const [hour, minute] = time.split(':');
-        const reservedTime = new Date(date);
-        reservedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0, 0);
-        return reservedTime;
-      });
-
-      const blockedTimes = [];
-      reservedStartTimes.forEach((startTime, index) => {
-        const endTime = reservedEndTimes[index];
-        let currentTime = new Date(startTime);
-        while (currentTime < endTime) {
-          blockedTimes.push(new Date(currentTime));
-          currentTime.setMinutes(currentTime.getMinutes() + 1);
-          console.log('Horarios reservados:', currentTime);
+  
+      // Crear pares de horarios inicio-fin
+      const blockedTimes = startResponse.data.map((time, index) => {
+        const [startHour, startMinute] = time.split(':');
+        const startTime = new Date(date);
+        startTime.setHours(parseInt(startHour, 10), parseInt(startMinute, 10), 0, 0);
+        
+        // Si hay un tiempo de finalización, se usa
+        if (endResponse.data[index]) {
+          const [endHour, endMinute] = endResponse.data[index].split(':');
+          const endTime = new Date(date);
+          endTime.setHours(parseInt(endHour, 10), parseInt(endMinute, 10), 0, 0);
+          return { start: startTime, end: endTime };
         }
+        
+        // Si no hay tiempo de finalización, se calcula uno basado en blockDuration
+        const endTime = new Date(startTime);
+        endTime.setMinutes(endTime.getMinutes() + blockDuration);
+        return { start: startTime, end: endTime };
       });
-
+  
       setBookingTimeNoFree(blockedTimes);
-
+      console.log('Horarios bloqueados:', blockedTimes);
+  
     } catch (error) {
       console.error('Error al obtener los horarios reservados:', error);
     }
@@ -103,8 +99,8 @@ const KartBookingForm = () => {
       return endTime;
     };
 
-  // Función para deshabilitar horarios reservados
-  const shouldDisableTime = (timeValue, view) => {
+  // Función para deshabilitar horarios
+  const shouldDisableTime = (timeValue) => {
     if (!bookingDate) return true;
   
     const date = new Date(bookingDate);
@@ -116,22 +112,23 @@ const KartBookingForm = () => {
     const closingHour = 22;
   
     // Bloquear horas fuera de horario
-    if (view === 'hours') {
-      return hour < openingHour || hour >= closingHour;
-    }
+    if (hour < openingHour || hour >= closingHour) return true;
   
-    // Bloquear minutos fuera de horario
-    if (view === 'minutes') {
-      if (hour < openingHour || hour >= closingHour) return true;
+    // Crear un objeto de tiempo para comparar
+    const selectedTime = new Date(date);
+    selectedTime.setHours(hour, minute, 0, 0);
+    
+    // Tiempo de finalización de la posible reserva
+    const potentialEndTime = new Date(selectedTime);
+    potentialEndTime.setMinutes(potentialEndTime.getMinutes() + blockDuration);
   
-      // Compara con los tiempos reservados
-      for (const reserved of bookingTimeNoFree) {
-        if (
-          reserved.getHours() === hour &&
-          reserved.getMinutes() === minute
-        ) {
-          return true;
-        }
+    // Comprobar si esta posible reserva se solapa con alguna reserva existente
+    for (const blockTime of bookingTimeNoFree) {
+      // Si el tiempo seleccionado está entre el inicio y fin de una reserva existente
+      if ((selectedTime >= blockTime.start && selectedTime < blockTime.end) ||
+          // O si el tiempo de finalización de la posible reserva se solapa con una reserva existente
+          (potentialEndTime > blockTime.start && selectedTime < blockTime.start)) {
+        return true;
       }
     }
   
@@ -156,12 +153,34 @@ const KartBookingForm = () => {
   };
 
   // Función para añadir una persona a la lista de participantes
-  const addPerson = () => {
+  const addPerson = async () => {
     const newErrors = validatePerson();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
+  
+    // Si es la primera persona (quien hace la reserva), verificar que esté registrada
+    if (people.length === 0) {
+      try {
+        const response = await clientService.getClientByRut(person.rut);
+        
+        // Verifica si la respuesta indica que no hay cliente
+        const noClientFound = !response.data.clientRUT;
+        
+        if (noClientFound) {
+          setErrors({ rut: 'El cliente no está registrado en el sistema' });
+          return;
+        }
+        
+        // Cliente verificado, se añade a la lista
+      } catch (error) {
+        console.error('Error al verificar el cliente:', error);
+        setErrors({ rut: 'Error al verificar el cliente en el sistema' });
+        return;
+      }
+    }
+    
     setPeople([...people, person]);
     setPerson({ rut: '', name: '', email: '' });
     setErrors({});
@@ -215,19 +234,18 @@ const KartBookingForm = () => {
       console.error('Error al guardar la reserva:', error);
       alert('Ocurrió un error al guardar la reserva. Por favor, inténtalo de nuevo.');
     }
-
-
   };
    
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Container maxWidth="xl" sx={{ mt: 4 }}>
         <Paper elevation={3} sx={{ p: 3 }}>
           <Typography variant="h4" gutterBottom align="center">
             Reserva de Karts
           </Typography>
           <Divider sx={{ mb: 3 }} />
 
+          <Divider sx={{ mb: 3 }} />
           <form onSubmit={handleSubmit}>
             {/* Sección de detalles */}
             <Typography variant="h6" gutterBottom>Detalles de la Actividad</Typography>
@@ -240,6 +258,8 @@ const KartBookingForm = () => {
                   value={lapsOrMaxTime}
                   onChange={(e) => setLapsOrMaxTime(parseInt(e.target.value))}
                   inputProps={{ min: 10, max: 20, step: 5 }}
+                  error={lapsOrMaxTime < 10 || lapsOrMaxTime > 20}
+                  helperText={lapsOrMaxTime < 10 || lapsOrMaxTime > 20 ? 'El número de vueltas o tiempo máximo permitido debe ser entre 10 y 20' : ''}
                   sx={{ minWidth: 200 }}
                 />
               </Grid>
@@ -251,6 +271,8 @@ const KartBookingForm = () => {
                   value={numOfPeople}
                   onChange={(e) => setNumOfPeople(parseInt(e.target.value))}
                   inputProps={{ min: 1, max: 15 , step: 1}}
+                  error={numOfPeople < 1 || numOfPeople > 15}
+                  helperText={numOfPeople < 1 || numOfPeople > 15 ? 'El número de personas debe ser entre 1 y 15' : ''}
                   sx={{ minWidth: 200 }}
                 />
               </Grid>
@@ -273,26 +295,32 @@ const KartBookingForm = () => {
                 />
               </Grid>
               <Grid>
-                <StaticTimePicker
-                  label="Hora de Reserva"
-                  value={bookingTime}
-                  disabled={!bookingDate}
-                  onChange={handleTimeChange}
-                  textField={(params) => <TextField {...params} fullWidth required />}
-                  views={['hours', 'minutes']}
-                  shouldDisableTime={shouldDisableTime}
-                />
+                <Paper sx={{ p: 2, minWidth: 280 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Hora de Reserva
+                  </Typography>
+                  <DigitalClock
+                    value={bookingTime}
+                    onChange={handleTimeChange}
+                    disabled={!bookingDate}
+                    shouldDisableTime={shouldDisableTime}
+                    skipDisabled
+                    ampm={false}
+                    timeStep={1}
+                  />
+                </Paper>
               </Grid>
             </Grid>
 
             {/* Sección de participantes */}
             <Typography variant="h6" gutterBottom>Datos de los Participantes</Typography>
+            <Typography variant="subtitle1" gutterBottom color='textSecondary'> Ingresa primero a quien realiza la reserva</Typography>
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid>
                 <TextField
                   fullWidth
                   label="RUT"
-                  placeholder="Formato 1111111111-1"
+                  placeholder="Formato 12345678-9"
                   value={person.rut}
                   onChange={(e) => setPerson({ ...person, rut: e.target.value })}
                   error={!!errors.rut}

@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const BOOKING_API_URL = "http://4.201.120.74/api/booking";
-const CLIENT_API_URL = "http://4.201.120.74/api/client";
+const BOOKING_API_URL = "http://localhost:8090/api/booking";
+const CLIENT_API_URL = "http://localhost:8090/api/client";
 
 // ------------------ Booking ------------------
 function saveBooking(data) {
@@ -37,6 +37,10 @@ function saveClient(client){
     return axios.post(`${CLIENT_API_URL}/save`, client);
 }
 
+function getClientByRut(rut){
+    return axios.get(`${CLIENT_API_URL}/get/${rut}`);
+}
+
 
 // ------------------ Export -------------------
 
@@ -48,5 +52,6 @@ export default {
     getBookingTimesEndByDate,
     confirmBooking,
     cancelBooking,
-    saveClient
+    saveClient,
+    getClientByRut
 };

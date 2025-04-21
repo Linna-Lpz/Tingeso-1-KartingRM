@@ -39,14 +39,14 @@ export default function Sidemenu({ open, toggleDrawer }) {
           <ListItemIcon>
             <PeopleAltIcon />
           </ListItemIcon>
-          <ListItemText primary="Registro de cliente" />
+          <ListItemText primary="Registro de usuario" />
         </ListItemButton>
 
         <ListItemButton onClick={() => navigate("/statusKartBooking")}>
           <ListItemIcon>
             <PeopleAltIcon />
           </ListItemIcon>
-          <ListItemText primary="Mis reservas" />
+          <ListItemText primary="Reservas del cliente" />
         </ListItemButton>
 
         <Divider />
@@ -55,7 +55,7 @@ export default function Sidemenu({ open, toggleDrawer }) {
           <ListItemIcon>
             <PeopleAltIcon />
           </ListItemIcon>
-          <ListItemText primary="Formulario de reserva" />
+          <ListItemText primary="Reserva aquí" />
         </ListItemButton>
 
         <ListItemButton onClick={() => navigate("/RackWeekly")}>

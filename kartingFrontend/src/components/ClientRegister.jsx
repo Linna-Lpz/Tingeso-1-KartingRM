@@ -61,7 +61,7 @@ const ClientRegister = () => {
                 <TextField
                   fullWidth
                   label="RUT"
-                  placeholder="Sin puntos ni guión"
+                  placeholder="Ej: 12345678-9"
                   value={clientRUT}
                   onChange={(e) => setClientRut(e.target.value)}
                   required
