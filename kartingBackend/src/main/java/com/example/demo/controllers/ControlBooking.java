@@ -3,6 +3,7 @@ package com.example.demo.controllers;
 import com.example.demo.entities.EntityBooking;
 import com.example.demo.services.ServiceBooking;
 import com.example.demo.services.ServiceVoucher;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ public class ControlBooking {
     ServiceBooking serviceBooking;
     @Autowired
     ServiceVoucher serviceVoucher;
+
 
     /**
      * Método para guardar una reserva
@@ -76,6 +78,8 @@ public class ControlBooking {
 
     /**
      * Método para obtener una lista de reservas por fecha
+     * @param date Fecha de la reserva
+     * @return Lista de reservas por fecha
      */
     @GetMapping("/getBookingTimesByDate/{date}")
     public ResponseEntity<List<LocalTime>> getTimesByDate(@PathVariable LocalDate date) {
@@ -85,6 +89,8 @@ public class ControlBooking {
 
     /**
      * Método para obtener una lista de reservas por fecha
+     * @param date Fecha de la reserva
+     * @return Lista de reservas por fecha
      */
     @GetMapping("/getBookingTimesEndByDate/{date}")
     public ResponseEntity<List<LocalTime>> getTimesEndByDate(@PathVariable LocalDate date) {
@@ -94,6 +100,7 @@ public class ControlBooking {
 
     /**
      * Método para exportar el comprobante a Excel
+     * @param bookingId ID de la reserva
      */
     @PostMapping("/export/{bookingId}")
     public ResponseEntity<byte[]> exportVoucherToExcel(@PathVariable Long bookingId) {
@@ -102,10 +109,29 @@ public class ControlBooking {
 
     /**
      * Método para exportar el comprobante a PDF
+     * @param bookingId ID de la reserva
      */
     @PostMapping("/convert/{bookingId}")
     public ResponseEntity<byte[]> convertExcelToPdf(@PathVariable Long bookingId) {
         return serviceVoucher.convertExcelToPdf(bookingId);
     }
 
+    /**
+     * Método para obtener una lista de reservas confirmadas
+     */
+    @GetMapping("/getConfirmedBookings")
+    public ResponseEntity<List<EntityBooking>> getConfirmedBookings() {
+        List<EntityBooking> bookings = serviceBooking.getConfirmedBookings();
+        System.out.println("Entro a confirmadas");
+        return ResponseEntity.ok(bookings);
+    }
+
+    /**
+     * Método para enviar el comprobante por correo electrónico
+     * @param bookingId ID de la reserva
+     */
+    @PostMapping("/send/{bookingId}")
+    public void sendVoucherByEmail(@PathVariable Long bookingId) {
+        serviceVoucher.sendVoucherByEmail(bookingId);
+    }
 }

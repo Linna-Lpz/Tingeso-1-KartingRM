@@ -21,6 +21,8 @@ public class ServiceBooking {
     @Autowired
     RepoClient repoClient;
 
+    ServiceVoucher serviceVoucher;
+
     /**
      * Método para guardar una reserva
      * @param booking Objeto de tipo EntityBooking
@@ -417,5 +419,35 @@ public class ServiceBooking {
         return times;
     }
 
+    /**
+     * Método para obtener una lista de reservas confirmadas
+     */
+    public List<EntityBooking> getConfirmedBookings() {
+        return repoBooking.findByBookingStatusContains("confirmada");
+    }
+
+    /**
+     * Método para obtener los ingresos totales de un mes según número de vueltas
+     * @param lapsOrTimeMax número de vueltas o tiempo máximo
+     * @param month mes de la reserva
+     * @return ingresos totales
+     */
+    public Integer getIncomesForTimeAndMonth(Integer lapsOrTimeMax, String month) {
+        List<EntityBooking> bookings = repoBooking.findByStatusAndDayAndLapsOrMaxTime("confirmada", month, lapsOrTimeMax);
+        Integer incomes = 0;
+        for (EntityBooking booking : bookings) {
+            String[] totalPriceList = booking.getTotalPrice().split(",");
+            for (String totalPrice : totalPriceList) {
+                Integer price = Integer.parseInt(totalPrice);
+                incomes += price;
+            }
+        }
+        return incomes;
+    }
+
+    /**
+     * Método para calcular ingresos por número de vueltas o tiempo máximo
+     *
+     */
 
 }

@@ -45,6 +45,8 @@ public class ServiceClient {
 
     /**
      * Método para obtener un cliente por su RUT
+     * @param clientRUT RUT del cliente
+     * @return Cliente si existe, null si no existe
      */
     public EntityClient getClientByRut(String clientRUT) {
         EntityClient client = repoClient.findByClientRUT(clientRUT);

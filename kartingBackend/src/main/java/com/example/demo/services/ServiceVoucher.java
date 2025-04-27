@@ -9,19 +9,23 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.stereotype.Service;
-
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.FileSystemResource;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +35,8 @@ import java.util.Objects;
 public class ServiceVoucher {
     @Autowired
     RepoBooking repoBooking;
+    @Autowired
+    private JavaMailSender mailSender;
 
     /**
      * Método para exportar el comprobante a Excel
@@ -212,6 +218,11 @@ public class ServiceVoucher {
         }
     }
 
+    /**
+     * Método para obtener el valor de una celda como String
+     * @param cell Celda
+     * @return Valor de la celda como String
+     */
     private String getCellValueAsString(Cell cell) {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
@@ -227,5 +238,74 @@ public class ServiceVoucher {
 
     /**
      * Método para enviar un pdf por correo
+     * @param bookingId ID de la reserva
      */
+    public void sendVoucherByEmail(Long bookingId) {
+        EntityBooking booking = repoBooking.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
+
+        String[] clientsEmails = booking.getClientsEmails().split(",");
+
+        ResponseEntity<byte[]> pdfResponse = convertExcelToPdf(bookingId);
+        byte[] pdfBytes = pdfResponse.getBody();
+
+        if (pdfBytes == null) {
+            throw new RuntimeException("No se pudo generar el comprobante en PDF.");
+        }
+
+        try {
+            // Guardar el PDF en un archivo temporal
+            File tempFile = File.createTempFile("voucher_" + bookingId, ".pdf");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(pdfBytes);
+            }
+
+            for (String email : clientsEmails) {
+                // Enviar el correo con el archivo adjunto
+                sendMessageWithAttachment(
+                        email,
+                        "Comprobante de Reserva - KartingRM",
+                        "Hola, adjunto encontrarás el comprobante de tu reserva.",
+                        tempFile.getAbsolutePath()
+                );
+            }
+
+            // Eliminar el archivo temporal después de enviar
+            tempFile.deleteOnExit();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error al guardar el PDF temporalmente: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Método para enviar un correo con un archivo adjunto
+     * @param to destinatario
+     * @param subject asunto
+     * @param text cuerpo del mensaje
+     * @param pathToAttachment ruta del archivo adjunto
+     */
+    public void sendMessageWithAttachment(String to,
+                                          String subject,
+                                          String text,
+                                          String pathToAttachment) {
+
+        // Crear el mensaje
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setFrom("unique.bussiness.exp@gmail.com");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text);
+
+            FileSystemResource file = new FileSystemResource(new File(pathToAttachment));
+            helper.addAttachment(file.getFilename(), file);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Error sending email: " + e.getMessage(), e);
+        }
+    }
 }

@@ -18,8 +18,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.mockito.MockedStatic;
 import static org.mockito.Mockito.mockStatic;
-import org.apache.poi.ss.usermodel.DataFormat;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -92,6 +92,66 @@ public class TestServiceVoucher {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Reserva no encontrada con ID: 999");
     }
+
+    @Test
+    void whenExportVoucherToExcelIOException_thenThrowRuntimeException() {
+        // Given
+        when(repoBooking.findById(1L)).thenReturn(Optional.of(booking));
+
+        ServiceVoucher spyService = spy(serviceVoucher);
+        doThrow(new IOException("Error de escritura")).when(spyService).exportVoucherToExcel(anyLong());
+
+        // When/Then
+        assertThatThrownBy(() -> spyService.exportVoucherToExcel(1L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error al generar el archivo Excel del comprobante");
+
+    }
+
+    @Test
+    void whenConvertExcelToPdfIOException_thenThrowRuntimeException() {
+        // Given
+        when(repoBooking.findById(1L)).thenReturn(Optional.of(booking));
+
+        ServiceVoucher spyService = spy(serviceVoucher);
+        doThrow(new RuntimeException("Simulación error PDF")).when(spyService).exportVoucherToExcel(anyLong());
+
+        // When/Then
+        assertThatThrownBy(() -> spyService.convertExcelToPdf(1L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Simulación error PDF");
+    }
+
+    @Test
+    void whenConvertExcelToPdf_thenResponseShouldBePdfContentType() {
+        // Given
+        when(repoBooking.findById(1L)).thenReturn(Optional.of(booking));
+
+        ResponseEntity<byte[]> response = serviceVoucher.convertExcelToPdf(1L);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(Objects.requireNonNull(response.getHeaders().getContentType()))
+                .isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().length).isGreaterThan(0);
+    }
+
+    @Test
+    void whenGetCellValueAsStringWithUnexpectedCellType_thenReturnEmptyString() throws Exception {
+        // Given
+        when(cell.getCellType()).thenReturn(CellType.ERROR);
+
+        Method method = ServiceVoucher.class.getDeclaredMethod("getCellValueAsString", Cell.class);
+        method.setAccessible(true);
+
+        // When
+        String result = (String) method.invoke(serviceVoucher, cell);
+
+        // Then
+        assertThat(result).isEqualTo("");
+    }
+
 
     @Test
     void whenConvertExcelToPdfWithValidBookingId_thenReturnPdfFile() {
