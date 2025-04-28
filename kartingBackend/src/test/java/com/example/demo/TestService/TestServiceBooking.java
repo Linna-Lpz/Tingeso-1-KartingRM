@@ -12,8 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.jayway.jsonpath.internal.path.PathCompiler.fail;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -630,13 +629,8 @@ class TestServiceBooking {
 
         when(repoBooking.findById(bookingId)).thenReturn(Optional.of(existingBooking));
 
-        try {
-            Field field = ServiceBooking.class.getDeclaredField("serviceVoucher");
-            field.setAccessible(true);
-            field.set(serviceBooking, serviceVoucher);
-        } catch (Exception e) {
-            fail("Failed to set serviceVoucher field: " + e.getMessage());
-        }
+        // Set the mock serviceVoucher into serviceBooking
+        ReflectionTestUtils.setField(serviceBooking, "serviceVoucher", serviceVoucher);
 
         // When
         serviceBooking.confirmBooking(bookingId);

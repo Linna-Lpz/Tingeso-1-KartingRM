@@ -12,6 +12,7 @@ public class ServiceKard {
 
     /**
      * Método para guardar un kard
+     * @param kard kard a guardar
      */
     public void saveKard(EntityKard kard) {
         String idKard = kard.getCoding();

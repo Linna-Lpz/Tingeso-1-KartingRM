@@ -17,13 +17,14 @@ public class EntityBooking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //TO DO: fecha y hora de la reserva
     @Column(name = "booking_date")
     private LocalDate bookingDate; // DD-MM-YYYY
     @Column(name = "booking_time")
     private LocalTime bookingTime; // HH:MM
     @Column(name = "booking_time_end")
-    private LocalTime bookingTimeEnd; // HH:MM Tiempo total duracion reserva
+    private LocalTime bookingTimeEnd; // HH:MM Tiempo total duración reserva
+
+    private String bookingStatus; // Estado de la reserva (confirmada, sin confirmar, cancelada)
 
     private Integer lapsOrMaxTimeAllowed;
     private Integer numOfPeople;
@@ -34,8 +35,6 @@ public class EntityBooking {
     private String price; // Tarifa base
     private String discounts; // Descuentos aplicados (cumpleaños, integrantes, visitas)
     private String totalPrice; // Tarifa con descuentos aplicados
-
-    private String bookingStatus; // Estado de la reserva (confirmada, sin confirmar, cancelada)
 
     private String Iva = "19"; // Porcentaje impuesto
     private String totalWithIva; // Total con impuesto

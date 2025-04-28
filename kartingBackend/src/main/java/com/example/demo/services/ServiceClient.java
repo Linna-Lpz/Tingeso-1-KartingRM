@@ -14,6 +14,7 @@ public class ServiceClient {
 
     /**
      * Método para crear un nuevo cliente
+     * @param client Cliente a crear
      */
     public void saveClient(EntityClient client) {
         String clientRUT = client.getClientRUT();
