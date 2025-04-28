@@ -5,9 +5,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class Tingeso1KartingRmApplicationTests {
-/**
+
 	@Test
 	void contextLoads() {
 	}
-*/
+
 }
