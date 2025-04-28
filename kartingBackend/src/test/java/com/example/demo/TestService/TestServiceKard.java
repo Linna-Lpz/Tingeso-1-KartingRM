@@ -28,11 +28,12 @@ public class TestServiceKard {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        // Set up a sample kard
+        // Crear una instancia de EntityKard para las pruebas
         kard = new EntityKard();
         kard.setCoding("K001");
     }
 
+    // ----------------------------Test-SaveKard--------------------------------
     @Test
     void whenSaveKardWithNewId_thenKardIsSaved() {
         // Given

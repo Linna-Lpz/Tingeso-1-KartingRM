@@ -9,17 +9,19 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.mockito.MockedStatic;
-import static org.mockito.Mockito.mockStatic;
 
-import java.io.IOException;
+import static org.mockito.Mockito.mockStatic;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import java.io.File;
+import java.lang.reflect.Field;
+
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -64,6 +66,7 @@ public class TestServiceVoucher {
         booking.setTotalAmount(14875);
     }
 
+    // -------------------------------Test-ExportVoucherToExcel---------------------------------------------------------
     @Test
     void whenExportVoucherToExcelWithValidBookingId_thenReturnExcelFile() {
         // Given
@@ -99,8 +102,8 @@ public class TestServiceVoucher {
         when(repoBooking.findById(1L)).thenReturn(Optional.of(booking));
 
         ServiceVoucher spyService = spy(serviceVoucher);
-        doThrow(new IOException("Error de escritura")).when(spyService).exportVoucherToExcel(anyLong());
-
+        doThrow(new RuntimeException("Error al generar el archivo Excel del comprobante"))
+                .when(spyService).exportVoucherToExcel(anyLong());
         // When/Then
         assertThatThrownBy(() -> spyService.exportVoucherToExcel(1L))
                 .isInstanceOf(RuntimeException.class)
@@ -108,6 +111,7 @@ public class TestServiceVoucher {
 
     }
 
+    // -------------------------------Test-ConvertExcelToPdf------------------------------------------------------------
     @Test
     void whenConvertExcelToPdfIOException_thenThrowRuntimeException() {
         // Given
@@ -136,22 +140,6 @@ public class TestServiceVoucher {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().length).isGreaterThan(0);
     }
-
-    @Test
-    void whenGetCellValueAsStringWithUnexpectedCellType_thenReturnEmptyString() throws Exception {
-        // Given
-        when(cell.getCellType()).thenReturn(CellType.ERROR);
-
-        Method method = ServiceVoucher.class.getDeclaredMethod("getCellValueAsString", Cell.class);
-        method.setAccessible(true);
-
-        // When
-        String result = (String) method.invoke(serviceVoucher, cell);
-
-        // Then
-        assertThat(result).isEqualTo("");
-    }
-
 
     @Test
     void whenConvertExcelToPdfWithValidBookingId_thenReturnPdfFile() {
@@ -186,6 +174,22 @@ public class TestServiceVoucher {
         assertThatThrownBy(() -> serviceVoucher.convertExcelToPdf(999L))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Reserva no encontrada con ID: 999");
+    }
+
+    // -------------------------------Test-GetCellValueAsString---------------------------------------------------------
+    @Test
+    void whenGetCellValueAsStringWithUnexpectedCellType_thenReturnEmptyString() throws Exception {
+        // Given
+        when(cell.getCellType()).thenReturn(CellType.ERROR);
+
+        Method method = ServiceVoucher.class.getDeclaredMethod("getCellValueAsString", Cell.class);
+        method.setAccessible(true);
+
+        // When
+        String result = (String) method.invoke(serviceVoucher, cell);
+
+        // Then
+        assertThat(result).isEqualTo("");
     }
 
     @Test
@@ -230,7 +234,6 @@ public class TestServiceVoucher {
             assertThat(result).isEqualTo("123.45");
         }
     }
-
 
     @Test
     void whenGetCellValueAsStringWithBooleanCell_thenReturnBooleanValue() throws Exception {
@@ -289,5 +292,78 @@ public class TestServiceVoucher {
 
         // Then
         assertThat(result).isEqualTo("");
+    }
+
+    // -------------------------------Test-SendVoucherByEmail-----------------------------------------------------------
+    @Test
+    void whenSendVoucherByEmail_thenSendsEmailSuccessfully() throws Exception {
+        // Given
+        EntityBooking booking = new EntityBooking();
+        booking.setId(1L);
+        booking.setClientsEmails("test@example.com,test2@example.com");
+        when(repoBooking.findById(1L)).thenReturn(Optional.of(booking));
+
+        // Mock PDF generation
+        byte[] pdfBytes = "test pdf content".getBytes();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        ResponseEntity<byte[]> mockResponse = new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        ServiceVoucher spyService = spy(serviceVoucher);
+        doReturn(mockResponse).when(spyService).convertExcelToPdf(1L);
+        doNothing().when(spyService).sendMessageWithAttachment(anyString(), anyString(), anyString(), anyString());
+
+        // When
+        spyService.sendVoucherByEmail(1L);
+
+        // Then
+        verify(spyService).convertExcelToPdf(1L);
+        verify(spyService, times(2)).sendMessageWithAttachment(
+                anyString(),
+                eq("Comprobante de Reserva - KartingRM"),
+                eq("Hola, adjunto encontrarás el comprobante de tu reserva."),
+                anyString());
+    }
+
+    @Test
+    void whenSendVoucherByEmailWithInvalidBookingId_thenThrowException() {
+        // Given
+        when(repoBooking.findById(999L)).thenReturn(Optional.empty());
+
+        // When/Then
+        assertThatThrownBy(() -> serviceVoucher.sendVoucherByEmail(999L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Reserva no encontrada con ID: 999");
+    }
+
+    // -------------------------------Test-SendMessageWithAttachment----------------------------------------------------
+    @Test
+    void whenSendMessageWithAttachment_thenCallsMailSender() throws Exception {
+        // Given
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        MimeMessage mockMessage = mock(MimeMessage.class);
+        when(mockMailSender.createMimeMessage()).thenReturn(mockMessage);
+
+        ServiceVoucher serviceWithMock = new ServiceVoucher();
+
+        // Use reflection to inject mock
+        Field mailSenderField = ServiceVoucher.class.getDeclaredField("mailSender");
+        mailSenderField.setAccessible(true);
+        mailSenderField.set(serviceWithMock, mockMailSender);
+
+        // Create a temp file for testing
+        File tempFile = File.createTempFile("test", ".pdf");
+        tempFile.deleteOnExit();
+
+        // When
+        serviceWithMock.sendMessageWithAttachment(
+                "test@example.com",
+                "Test Subject",
+                "Test Body",
+                tempFile.getAbsolutePath());
+
+        // Then
+        verify(mockMailSender).createMimeMessage();
+        verify(mockMailSender).send(mockMessage);
     }
 }

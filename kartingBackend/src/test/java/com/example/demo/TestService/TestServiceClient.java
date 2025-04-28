@@ -29,6 +29,7 @@ public class TestServiceClient {
         client = new EntityClient();
     }
 
+    // ------------------------------Test-SaveClient-----------------------------------------
     @Test
     void whenSaveClientWithValidData_thenClientIsSaved() {
         // Given
@@ -124,6 +125,7 @@ public class TestServiceClient {
         verify(repoClient, never()).save(any(EntityClient.class));
     }
 
+    // ------------------------------Test-getClientByRut-------------------------------------
     @Test
     void whenGetClientByRutWithExistingRUT_thenReturnClient() {
         // Given

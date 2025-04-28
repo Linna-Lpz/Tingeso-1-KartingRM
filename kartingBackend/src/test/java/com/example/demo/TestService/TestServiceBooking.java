@@ -5,6 +5,7 @@ import com.example.demo.entities.EntityClient;
 import com.example.demo.repositories.RepoBooking;
 import com.example.demo.repositories.RepoClient;
 import com.example.demo.services.ServiceBooking;
+import com.example.demo.services.ServiceVoucher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -12,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -19,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.jayway.jsonpath.internal.path.PathCompiler.fail;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -35,6 +38,9 @@ class TestServiceBooking {
     @Spy
     @InjectMocks
     private ServiceBooking serviceBooking;
+
+    @Mock
+    private ServiceVoucher serviceVoucher;
 
     private EntityBooking booking;
     private EntityClient client;
@@ -60,7 +66,7 @@ class TestServiceBooking {
         client.setVisistsPerMonth(3);
     }
 
-
+    // --------------------------------Test-SaveBooking--------------------------------------------
     @Test
     void whenSaveBooking_WithInvalidLapsOrMaxTimeAllowed_thenDoesNotSaveBooking() {
         // Given
@@ -177,69 +183,52 @@ class TestServiceBooking {
         verify(repoBooking, never()).save(any(EntityBooking.class));
     }
 
-    //-----------------------------------------------------------------------------
-
+    // --------------------------------Test-ValidateBookingFields--------------------------------------------
     @Test
-    void whenCheckIfHoliday_thenReturnsCorrectResult() {
+    void whenValidateBookingFields_WithValidFields_thenReturnsTrue() {
         // Given
-        LocalDate holidayDate = LocalDate.of(2025, 1, 1); // New Year's Day
-        LocalDate nonHolidayDate = LocalDate.of(2025, 1, 2);
+        booking.setBookingDate(LocalDate.of(2025, 2, 10));
+        booking.setBookingTime(LocalTime.of(16, 0));
+        booking.setLapsOrMaxTimeAllowed(10);
+        booking.setNumOfPeople(3);
+        booking.setClientsRUT("12345678-9");
+        booking.setClientsNames("Test Client");
+        booking.setClientsEmails("test@example.com");
+
+        doReturn(true).when(serviceBooking).isBookingTimeValid(any(EntityBooking.class), anyInt(), any(RepoBooking.class));
 
         // When
-        boolean isHoliday1 = serviceBooking.checkIfHoliday(holidayDate);
-        boolean isHoliday2 = serviceBooking.checkIfHoliday(nonHolidayDate);
-
-        // Then
-        assertThat(isHoliday1).isTrue();
-        assertThat(isHoliday2).isFalse();
-    }
-
-    @Test
-    void whenValidateClientWhoMadeReservation_WithRegisteredClient_thenReturnsTrue() {
-        // Given
-        String[] clientRuts = {"12345678-9"};
-        when(repoClient.findByClientRUT("12345678-9")).thenReturn(client);
-
-        // When
-        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
+        boolean result = serviceBooking.validateBookingFields(booking, 30);
 
         // Then
         assertThat(result).isTrue();
     }
 
     @Test
-    void whenValidateClientWhoMadeReservation_WithUnregisteredClient_thenReturnsFalse() {
+    void whenValidateBookingFields_WithMissingFields_thenReturnsFalse() {
         // Given
-        String[] clientRuts = {"98765432-1"};
-        when(repoClient.findByClientRUT("98765432-1")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-2")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-3")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-4")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-5")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-6")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-8")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-9")).thenReturn(null);
-        when(repoClient.findByClientRUT("98765432-0")).thenReturn(null);
+        booking.setBookingDate(null);
 
         // When
-        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
+        boolean result = serviceBooking.validateBookingFields(booking, 30);
 
         // Then
         assertThat(result).isFalse();
     }
 
     @Test
-    void whenValidateClientWhoMadeReservation_WithEmptyRutList_thenReturnsFalse() {
+    void whenValidateBookingFields_WithTooManyPeople_thenReturnsFalse() {
         // Given
-        String[] clientRuts = {};
+        booking.setNumOfPeople(20); // Maximum is 15
 
         // When
-        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
+        boolean result = serviceBooking.validateBookingFields(booking, 30);
 
         // Then
         assertThat(result).isFalse();
     }
 
+    // --------------------------------Test-IsBookingTimeValid--------------------------------------------
     @Test
     void whenIsBookingTimeValid_WithValidTime_AndNoConflict_thenReturnsTrue() {
         // Given
@@ -302,50 +291,71 @@ class TestServiceBooking {
         assertThat(result).isFalse();
     }
 
-    @Test
-    void whenValidateBookingFields_WithValidFields_thenReturnsTrue() {
-        // Given
-        booking.setBookingDate(LocalDate.of(2025, 2, 10));
-        booking.setBookingTime(LocalTime.of(16, 0));
-        booking.setLapsOrMaxTimeAllowed(10);
-        booking.setNumOfPeople(3);
-        booking.setClientsRUT("12345678-9");
-        booking.setClientsNames("Test Client");
-        booking.setClientsEmails("test@example.com");
+    // --------------------------------Test-CheckIfHoliday--------------------------------------------
 
-        doReturn(true).when(serviceBooking).isBookingTimeValid(any(EntityBooking.class), anyInt(), any(RepoBooking.class));
+    @Test
+    void whenCheckIfHoliday_thenReturnsCorrectResult() {
+        // Given
+        LocalDate holidayDate = LocalDate.of(2025, 1, 1); // New Year's Day
+        LocalDate nonHolidayDate = LocalDate.of(2025, 1, 2);
 
         // When
-        boolean result = serviceBooking.validateBookingFields(booking, 30);
+        boolean isHoliday1 = serviceBooking.checkIfHoliday(holidayDate);
+        boolean isHoliday2 = serviceBooking.checkIfHoliday(nonHolidayDate);
+
+        // Then
+        assertThat(isHoliday1).isTrue();
+        assertThat(isHoliday2).isFalse();
+    }
+
+    // --------------------------------Test-ValidateClientWhoMadeReservation--------------------------------------------
+    @Test
+    void whenValidateClientWhoMadeReservation_WithRegisteredClient_thenReturnsTrue() {
+        // Given
+        String[] clientRuts = {"12345678-9"};
+        when(repoClient.findByClientRUT("12345678-9")).thenReturn(client);
+
+        // When
+        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
 
         // Then
         assertThat(result).isTrue();
     }
 
     @Test
-    void whenValidateBookingFields_WithMissingFields_thenReturnsFalse() {
+    void whenValidateClientWhoMadeReservation_WithUnregisteredClient_thenReturnsFalse() {
         // Given
-        booking.setBookingDate(null);
+        String[] clientRuts = {"98765432-1"};
+        when(repoClient.findByClientRUT("98765432-1")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-2")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-3")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-4")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-5")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-6")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-8")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-9")).thenReturn(null);
+        when(repoClient.findByClientRUT("98765432-0")).thenReturn(null);
 
         // When
-        boolean result = serviceBooking.validateBookingFields(booking, 30);
+        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
 
         // Then
         assertThat(result).isFalse();
     }
 
     @Test
-    void whenValidateBookingFields_WithTooManyPeople_thenReturnsFalse() {
+    void whenValidateClientWhoMadeReservation_WithEmptyRutList_thenReturnsFalse() {
         // Given
-        booking.setNumOfPeople(20); // Maximum is 15
+        String[] clientRuts = {};
 
         // When
-        boolean result = serviceBooking.validateBookingFields(booking, 30);
+        boolean result = serviceBooking.validateClientWhoMadeReservation(clientRuts);
 
         // Then
         assertThat(result).isFalse();
     }
 
+    // --------------------------------Test-discountsApplied--------------------------------------------
     @Test
     void whenDiscountsApplied_ForSmallGroup_WithFrequentVisitor_thenReturnsCorrectDiscounts() {
         // Given
@@ -525,7 +535,8 @@ class TestServiceBooking {
         // Given
         booking.setNumOfPeople(12);
         booking.setBookingDate(LocalDate.now());
-        String[] clientRuts = {"12345678-9", "98765432-1", "11111111-1", "22222222-2", "33333333-3", "44444444-4", "55555555-5", "66666666-6", "77777777-7", "88888888-8", "99999999-9", "00000000-0"};
+        String[] clientRuts = {"12345678-9", "98765432-1", "11111111-1", "22222222-2", "33333333-3", "44444444-4",
+                                "55555555-5", "66666666-6", "77777777-7", "88888888-8", "99999999-9", "00000000-0"};
 
         for (String rut : clientRuts) {
             EntityClient client = new EntityClient();
@@ -568,20 +579,7 @@ class TestServiceBooking {
         assertThat(booking.getDiscounts()).isEqualTo("integrantes,integrantes,integrantes,integrantes,integrantes,no,no,no,");
     }
 
-    @Test
-    void whenGetBookingsByUserRut_WithNoBookings_thenReturnsEmptyList() {
-        // Given
-        String clientRut = "12345678-9";
-        when(repoBooking.findByClientsRUTContains(clientRut)).thenReturn(new ArrayList<>());
-
-        // When
-        List<EntityBooking> result = serviceBooking.getBookingsByUserRut(clientRut);
-
-        // Then
-        assertThat(result).isEmpty();
-        verify(repoBooking).findByClientsRUTContains(clientRut);
-    }
-
+    // --------------------------------Test-TotalPriceWithDiscount--------------------------------------------
     @Test
     void whenTotalPriceWithDiscount_thenReturnsCorrectPrices() {
         // Given
@@ -595,6 +593,7 @@ class TestServiceBooking {
         assertThat(totalPrice).isEqualTo("18000,16000,14000,");
     }
 
+    // --------------------------------Test-CalculateTotalWithIva--------------------------------------------
     @Test
     void whenCalculateTotalWithIva_thenReturnsCorrectPrices() {
         // Given
@@ -608,6 +607,7 @@ class TestServiceBooking {
         assertThat(totalWithIva).isEqualTo("21420,19040,16660");
     }
 
+    // --------------------------------Test-CalculateTotalPrice--------------------------------------------
     @Test
     void whenCalculateTotalPrice_thenReturnsCorrectSum() {
         // Given
@@ -620,6 +620,7 @@ class TestServiceBooking {
         assertThat(totalPrice).isEqualTo(57120);
     }
 
+    // --------------------------------Test-ConfirmBooking--------------------------------------------
     @Test
     void whenConfirmBooking_thenStatusIsUpdated() {
         // Given
@@ -629,14 +630,24 @@ class TestServiceBooking {
 
         when(repoBooking.findById(bookingId)).thenReturn(Optional.of(existingBooking));
 
+        try {
+            Field field = ServiceBooking.class.getDeclaredField("serviceVoucher");
+            field.setAccessible(true);
+            field.set(serviceBooking, serviceVoucher);
+        } catch (Exception e) {
+            fail("Failed to set serviceVoucher field: " + e.getMessage());
+        }
+
         // When
         serviceBooking.confirmBooking(bookingId);
 
         // Then
         verify(repoBooking).save(existingBooking);
+        verify(serviceVoucher).sendVoucherByEmail(bookingId);
         assertThat(existingBooking.getBookingStatus()).isEqualTo("confirmada");
     }
 
+    // --------------------------------Test-CancelBooking--------------------------------------------
     @Test
     void whenCancelBooking_thenStatusIsUpdated() {
         // Given
@@ -652,6 +663,21 @@ class TestServiceBooking {
         // Then
         verify(repoBooking).save(existingBooking);
         assertThat(existingBooking.getBookingStatus()).isEqualTo("cancelada");
+    }
+
+    // --------------------------------Test-GetBookingsByUserRut--------------------------------------------
+    @Test
+    void whenGetBookingsByUserRut_WithNoBookings_thenReturnsEmptyList() {
+        // Given
+        String clientRut = "12345678-9";
+        when(repoBooking.findByClientsRUTContains(clientRut)).thenReturn(new ArrayList<>());
+
+        // When
+        List<EntityBooking> result = serviceBooking.getBookingsByUserRut(clientRut);
+
+        // Then
+        assertThat(result).isEmpty();
+        verify(repoBooking).findByClientsRUTContains(clientRut);
     }
 
     @Test
@@ -676,6 +702,7 @@ class TestServiceBooking {
         assertThat(result.get(0)).isEqualTo(booking1);
     }
 
+    // --------------------------------Test-GetBookings--------------------------------------------
     @Test
     void whenGetBookings_thenReturnsConfirmedBookings() {
         // Given
@@ -691,6 +718,7 @@ class TestServiceBooking {
         assertThat(result).isEqualTo(confirmedBookings);
     }
 
+    // --------------------------------Test-GetTimesByDate--------------------------------------------
     @Test
     void whenGetTimesByDate_thenReturnsBookingTimes() {
         // Given
@@ -712,6 +740,7 @@ class TestServiceBooking {
         assertThat(result).containsExactly(LocalTime.of(15, 0), LocalTime.of(16, 30));
     }
 
+    // --------------------------------Test-GetTimesEndByDate--------------------------------------------
     @Test
     void whenGetTimesEndByDate_thenReturnsBookingEndTimes() {
         // Given
@@ -733,6 +762,7 @@ class TestServiceBooking {
         assertThat(result).containsExactly(LocalTime.of(15, 30), LocalTime.of(17, 0));
     }
 
+    // --------------------------------Test-GetConfirmedBookings--------------------------------------------
     @Test
     void whenGetConfirmedBookings_thenReturnsConfirmedBookings() {
         // Given
