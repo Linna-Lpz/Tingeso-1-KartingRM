@@ -8,6 +8,7 @@ const StatusKartBooking = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Función para validar el RUT
   const handleShowBooking = async () => {
     if (!rut.trim()) {
       setError('Debes ingresar un RUT válido.');
@@ -23,6 +24,7 @@ const StatusKartBooking = () => {
     }
   };
 
+  // Función para pagar (confirmar) la reserva
   const handleConfirmBooking = async (bookingId) => {
     try {
       await bookingService.confirmBooking(bookingId);
@@ -34,6 +36,7 @@ const StatusKartBooking = () => {
     }
   };
 
+  // Función para cancelar la reserva
   const handleCancelBooking = async (bookingId) => {
     try {
       await bookingService.cancelBooking(bookingId);
@@ -79,7 +82,7 @@ const StatusKartBooking = () => {
               <p><strong>Estado:</strong> {booking.bookingStatus}</p>
               <p><strong>Valor total:</strong> {booking.totalAmount}</p>
 
-              {booking.bookingStatus !== 'confirmed' && (
+              {booking.bookingStatus !== 'confirmada' && (
                 <button
                 onClick={async () => {
                     await handleConfirmBooking(booking.id);
@@ -95,11 +98,11 @@ const StatusKartBooking = () => {
                     cursor: 'pointer'
                   }}
                 >
-                  Confirmar reserva
+                  Pagar reserva
                 </button>
               )}
 
-              {booking.status !== 'cancelled' && (
+              {booking.status !== 'cancelada' && (
                 <button
                   onClick={async () => {
                         await handleCancelBooking(booking.id);

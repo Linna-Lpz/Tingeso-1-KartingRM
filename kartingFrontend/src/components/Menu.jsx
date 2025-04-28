@@ -6,14 +6,10 @@ import Divider from "@mui/material/Divider";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import PaidIcon from "@mui/icons-material/Paid";
-import CalculateIcon from "@mui/icons-material/Calculate";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
-import DiscountIcon from "@mui/icons-material/Discount";
-import HailIcon from "@mui/icons-material/Hail";
-import MedicationLiquidIcon from "@mui/icons-material/MedicationLiquid";
-import MoreTimeIcon from "@mui/icons-material/MoreTime";
+import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import PostAddOutlinedIcon from '@mui/icons-material/PostAddOutlined';
+import CollectionsBookmarkOutlinedIcon from '@mui/icons-material/CollectionsBookmarkOutlined';
 import HomeIcon from "@mui/icons-material/Home";
 import { useNavigate } from "react-router-dom";
 
@@ -37,14 +33,14 @@ export default function Sidemenu({ open, toggleDrawer }) {
 
         <ListItemButton onClick={() => navigate("/clientRegister")}>
           <ListItemIcon>
-            <PeopleAltIcon />
+            <PersonAddAltOutlinedIcon />
           </ListItemIcon>
           <ListItemText primary="Registro de usuario" />
         </ListItemButton>
 
         <ListItemButton onClick={() => navigate("/statusKartBooking")}>
           <ListItemIcon>
-            <PeopleAltIcon />
+            <CollectionsBookmarkOutlinedIcon />
           </ListItemIcon>
           <ListItemText primary="Reservas del cliente" />
         </ListItemButton>
@@ -53,16 +49,23 @@ export default function Sidemenu({ open, toggleDrawer }) {
 
         <ListItemButton onClick={() => navigate("/KartBookingForm")}>
           <ListItemIcon>
-            <PeopleAltIcon />
+            <PostAddOutlinedIcon />
           </ListItemIcon>
           <ListItemText primary="Reserva aquí" />
         </ListItemButton>
 
         <ListItemButton onClick={() => navigate("/RackWeekly")}>
           <ListItemIcon>
-            <PeopleAltIcon />
+            <EventOutlinedIcon />
           </ListItemIcon>
           <ListItemText primary="Reservas semanales" />
+        </ListItemButton>
+
+        <ListItemButton onClick={() => navigate("/Reports")}>
+          <ListItemIcon>
+            <EventOutlinedIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reportes de venta" />
         </ListItemButton>
 
       </List>
