@@ -250,17 +250,14 @@ const KartBookingForm = () => {
     try {
       const response = await bookingService.saveBooking(reservationData);
       
-      if (response.status !== 200) {
-        throw new Error('Error al guardar la reserva');
-      }
-
-
-      // Resetear el formulario y navegar
+      if (response.status == 200) {
+        // Resetear el formulario y navegar
       setBookingDate(null);
       setBookingTime(null);
       setPeople([]);
       alert('Reserva realizada con éxito', 'success');
       navigate("/statusKartBooking");
+      }
     } catch (error) {
       console.error('Error al guardar la reserva:', error);
     }
@@ -340,7 +337,7 @@ const KartBookingForm = () => {
                     shouldDisableTime={shouldDisableTime}
                     skipDisabled
                     ampm={false}
-                    timeStep={5}
+                    timeStep={1}
                   />
                 </Paper>
               </Grid>

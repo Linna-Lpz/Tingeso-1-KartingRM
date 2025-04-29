@@ -252,7 +252,7 @@ const RackWeekly = () => {
                             sx={{ 
                               p: 1, 
                               borderRadius: 1, 
-                              bgcolor: 'primary.light',
+                              bgcolor: 'orange',
                               color: 'primary.contrastText',
                               mb: 0.5,
                               boxShadow: 1,

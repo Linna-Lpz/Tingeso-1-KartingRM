@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/services.management';
 
@@ -6,10 +6,12 @@ const StatusKartBooking = () => {
   const [rut, setRut] = useState('');
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState(null);
+  const [cancelBookingId, setCancelBookingId] = useState(null);
+  const [refresh, setRefresh] = useState(false); // Estado para forzar la actualización
   const navigate = useNavigate();
 
-  // Función para validar el RUT
-  const handleShowBooking = async () => {
+  // Función para cargar las reservas
+  const fetchBookings = async () => {
     if (!rut.trim()) {
       setError('Debes ingresar un RUT válido.');
       return;
@@ -24,33 +26,48 @@ const StatusKartBooking = () => {
     }
   };
 
-  // Función para pagar (confirmar) la reserva
+  // Función para confirmar la reserva
   const handleConfirmBooking = async (bookingId) => {
     try {
       await bookingService.confirmBooking(bookingId);
-      bookings.map(booking => booking.id === bookingId ? { ...booking, status: 'confirmada' } : booking);
       alert('Reserva confirmada con éxito.');
-      // Enviar el voucher por correo electrónico
       await bookingService.sendVoucherByEmail(bookingId);
       alert('Voucher enviado al correo electrónico.');
-      
-      navigate("/");
-      
+      setRefresh((prev) => !prev); // Forzar actualización
     } catch (err) {
       setError('Error al confirmar la reserva.');
     }
   };
 
-  // Función para cancelar la reserva
-  const handleCancelBooking = async (bookingId) => {
-    try {
-      await bookingService.cancelBooking(bookingId);
-      bookings.map(booking => booking.id === bookingId ? { ...booking, status: 'cancelada' } : booking);
-      alert('Reserva cancelada con éxito.');
-      navigate("/");
-    } catch (err) {
-      setError('Error al cancelar la reserva.');
+  // useEffect para manejar la cancelación de reservas
+  useEffect(() => {
+    const cancelBooking = async () => {
+      if (!cancelBookingId) return;
+
+      try {
+        await bookingService.cancelBooking(cancelBookingId);
+        alert('Reserva cancelada con éxito.');
+        setCancelBookingId(null); // Reiniciar el estado después de cancelar
+        setRefresh((prev) => !prev); // Forzar actualización
+      } catch (err) {
+        setError('Error al cancelar la reserva.');
+        setCancelBookingId(null); // Reiniciar el estado incluso si ocurre un error
+      }
+    };
+
+    cancelBooking();
+  }, [cancelBookingId]);
+
+  // useEffect para recargar las reservas cuando cambie el estado `refresh`
+  useEffect(() => {
+    if (rut.trim()) {
+      fetchBookings();
     }
+  }, [refresh]);
+
+  // Función para establecer el bookingId a cancelar
+  const handleCancelBooking = (bookingId) => {
+    setCancelBookingId(bookingId);
   };
 
   return (
@@ -64,7 +81,7 @@ const StatusKartBooking = () => {
           onChange={(e) => setRut(e.target.value)}
           placeholder="Ingresa tu RUT"
         />
-        <button onClick={handleShowBooking}>Buscar reservas</button>
+        <button onClick={fetchBookings}>Buscar reservas</button>
       </div>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -78,21 +95,31 @@ const StatusKartBooking = () => {
                 border: '2px solid black',
                 padding: '10px',
                 width: '200px',
-                borderRadius: '10px'
+                borderRadius: '10px',
               }}
             >
-              <p><strong>Fecha:</strong> {booking.bookingDate}</p>
-              <p><strong>Hora:</strong> {booking.bookingTime}</p>
-              <p><strong>Vueltas o tiempo máx:</strong> {booking.lapsOrMaxTimeAllowed}</p>
-              <p><strong>Cantidad de personas:</strong> {booking.numOfPeople}</p>
-              <p><strong>Estado:</strong> {booking.bookingStatus}</p>
-              <p><strong>Valor total:</strong> {booking.totalAmount}</p>
+              <p>
+                <strong>Fecha:</strong> {booking.bookingDate}
+              </p>
+              <p>
+                <strong>Hora:</strong> {booking.bookingTime}
+              </p>
+              <p>
+                <strong>Vueltas o tiempo máx:</strong> {booking.lapsOrMaxTimeAllowed}
+              </p>
+              <p>
+                <strong>Cantidad de personas:</strong> {booking.numOfPeople}
+              </p>
+              <p>
+                <strong>Estado:</strong> {booking.bookingStatus}
+              </p>
+              <p>
+                <strong>Valor total:</strong> {booking.totalAmount}
+              </p>
 
               {booking.bookingStatus !== 'confirmada' && booking.bookingStatus !== 'cancelada' && (
                 <button
-                onClick={async () => {
-                    await handleConfirmBooking(booking.id);
-                  }}
+                  onClick={() => handleConfirmBooking(booking.id)}
                   style={{
                     marginTop: '10px',
                     backgroundColor: '#fff',
@@ -100,18 +127,16 @@ const StatusKartBooking = () => {
                     color: 'black',
                     padding: '5px 10px',
                     borderRadius: '5px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 >
                   Pagar reserva
                 </button>
               )}
 
-              {booking.bookingStatus == 'confirmada' && (
+              {booking.bookingStatus === 'confirmada' && (
                 <button
-                  onClick={async () => {
-                        await handleCancelBooking(booking.id);
-                        }}
+                  onClick={() => handleCancelBooking(booking.id)}
                   style={{
                     marginTop: '10px',
                     backgroundColor: '#fff',
@@ -119,7 +144,7 @@ const StatusKartBooking = () => {
                     color: 'black',
                     padding: '5px 10px',
                     borderRadius: '5px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 >
                   Cancelar reserva

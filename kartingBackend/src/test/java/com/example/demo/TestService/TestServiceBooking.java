@@ -245,32 +245,6 @@ class TestServiceBooking {
     }
 
     @Test
-    void whenIsBookingTimeValid_WithTimeBeforeOpeningHours_thenReturnsFalse() {
-        // Given
-        booking.setBookingDate(LocalDate.of(2025, 2, 10)); // Not a holiday
-        booking.setBookingTime(LocalTime.of(13, 0)); // Before opening at 14:00
-
-        // When
-        boolean result = serviceBooking.isBookingTimeValid(booking, 30, repoBooking);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    void whenIsBookingTimeValid_WithTimeAfterClosingHours_thenReturnsFalse() {
-        // Given
-        booking.setBookingDate(LocalDate.of(2025, 2, 10));
-        booking.setBookingTime(LocalTime.of(22, 30)); // After closing at 22:00
-
-        // When
-        boolean result = serviceBooking.isBookingTimeValid(booking, 30, repoBooking);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
     void whenIsBookingTimeValid_WithConflictingBooking_thenReturnsFalse() {
         // Given
         booking.setBookingDate(LocalDate.of(2025, 2, 10));

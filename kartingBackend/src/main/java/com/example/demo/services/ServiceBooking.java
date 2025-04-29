@@ -28,7 +28,7 @@ public class ServiceBooking {
      * @param booking Objeto de tipo EntityBooking
      *
      */
-    public void saveBooking(EntityBooking booking) {
+    public Boolean saveBooking(EntityBooking booking) {
         // Definir precios y duración
         int basePrice, totalDurationReservation;
 
@@ -39,7 +39,7 @@ public class ServiceBooking {
             case 20 -> { basePrice = 25000; totalDurationReservation = 40; }
             default -> {
                 System.out.println("Valor inválido para lapsOrMaxTimeAllowed.");
-                return;
+                return false;
             }
         }
         booking.setPrice(String.valueOf(basePrice));
@@ -47,7 +47,7 @@ public class ServiceBooking {
         String[] clientsRUT = booking.getClientsRUT().split(",");
 
         if (!validateBookingFields(booking, totalDurationReservation) || !validateClientWhoMadeReservation(clientsRUT)) {
-            return;
+            return false;
         }
 
         // Calcular precio final con descuentos
@@ -64,6 +64,7 @@ public class ServiceBooking {
 
         booking.setBookingStatus("sin confirmar");
         repoBooking.save(booking);
+        return true;
     }
 
     /**
@@ -104,11 +105,6 @@ public class ServiceBooking {
     public boolean isBookingTimeValid(EntityBooking booking, int totalDurationReservation, RepoBooking repoBooking) {
         LocalDate bookingDate = booking.getBookingDate();
         LocalTime bookingTime = booking.getBookingTime();
-        // Verificar que la hora de reserva esté dentro del horario permitido
-        LocalTime openingTime = (checkIfHoliday(bookingDate)) ? LocalTime.of(10, 0) : LocalTime.of(14, 0);
-        if (bookingTime.isBefore(openingTime) || bookingTime.isAfter(LocalTime.of(22, 0))) {
-            return false;
-        }
 
         // Calcular la hora de término de la nueva reserva
         LocalTime newBookingTimeEnd = bookingTime.plusMinutes(totalDurationReservation);
