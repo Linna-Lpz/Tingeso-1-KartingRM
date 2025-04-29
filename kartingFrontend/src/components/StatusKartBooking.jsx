@@ -33,7 +33,7 @@ const StatusKartBooking = () => {
       alert('Reserva confirmada con éxito.');
       await bookingService.sendVoucherByEmail(bookingId);
       alert('Voucher enviado al correo electrónico.');
-      setRefresh((prev) => !prev); // Forzar actualización
+      window.location.reload(); // Recargar la página para reflejar los cambios
     } catch (err) {
       setError('Error al confirmar la reserva.');
     }
