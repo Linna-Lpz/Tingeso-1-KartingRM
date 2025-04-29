@@ -72,7 +72,7 @@ const StatusKartBooking = () => {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h3>Consulta tus reservas</h3>
+      <h3>Consulta tus reservas .-.</h3>
 
       <div>
         <input
