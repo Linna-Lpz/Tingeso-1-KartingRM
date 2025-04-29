@@ -345,7 +345,6 @@ public class ServiceBooking {
         EntityBooking booking = repoBooking.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + bookingId));
         booking.setBookingStatus("confirmada");
-        serviceVoucher.sendVoucherByEmail(bookingId);
         repoBooking.save(booking);
     }
 

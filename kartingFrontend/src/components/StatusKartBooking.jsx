@@ -30,6 +30,11 @@ const StatusKartBooking = () => {
       await bookingService.confirmBooking(bookingId);
       bookings.map(booking => booking.id === bookingId ? { ...booking, status: 'confirmada' } : booking);
       alert('Reserva confirmada con éxito.');
+      // Enviar el voucher por correo electrónico
+      await bookingService.sendVoucherByEmail(bookingId);
+      alert('Voucher enviado al correo electrónico.');
+      
+      navigate("/");
       
     } catch (err) {
       setError('Error al confirmar la reserva.');
@@ -42,6 +47,7 @@ const StatusKartBooking = () => {
       await bookingService.cancelBooking(bookingId);
       bookings.map(booking => booking.id === bookingId ? { ...booking, status: 'cancelada' } : booking);
       alert('Reserva cancelada con éxito.');
+      navigate("/");
     } catch (err) {
       setError('Error al cancelar la reserva.');
     }
@@ -82,11 +88,10 @@ const StatusKartBooking = () => {
               <p><strong>Estado:</strong> {booking.bookingStatus}</p>
               <p><strong>Valor total:</strong> {booking.totalAmount}</p>
 
-              {booking.bookingStatus !== 'confirmada' && (
+              {booking.bookingStatus !== 'confirmada' && booking.bookingStatus !== 'cancelada' && (
                 <button
                 onClick={async () => {
                     await handleConfirmBooking(booking.id);
-                    navigate("/");
                   }}
                   style={{
                     marginTop: '10px',
@@ -102,11 +107,10 @@ const StatusKartBooking = () => {
                 </button>
               )}
 
-              {booking.status !== 'cancelada' && (
+              {booking.bookingStatus == 'confirmada' && (
                 <button
                   onClick={async () => {
                         await handleCancelBooking(booking.id);
-                        navigate("/");
                         }}
                   style={{
                     marginTop: '10px',
@@ -124,7 +128,7 @@ const StatusKartBooking = () => {
             </div>
           ))
         ) : (
-          <p>No hay reservas registradas para este cliente.</p>
+          <p>Ingrese su rut para pagar y confirmar o cancelar una reserva.</p>
         )}
       </div>
     </div>

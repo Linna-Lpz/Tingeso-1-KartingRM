@@ -629,15 +629,11 @@ class TestServiceBooking {
 
         when(repoBooking.findById(bookingId)).thenReturn(Optional.of(existingBooking));
 
-        // Set the mock serviceVoucher into serviceBooking
-        ReflectionTestUtils.setField(serviceBooking, "serviceVoucher", serviceVoucher);
-
         // When
         serviceBooking.confirmBooking(bookingId);
 
         // Then
         verify(repoBooking).save(existingBooking);
-        verify(serviceVoucher).sendVoucherByEmail(bookingId);
         assertThat(existingBooking.getBookingStatus()).isEqualTo("confirmada");
     }
 

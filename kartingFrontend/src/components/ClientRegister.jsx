@@ -19,6 +19,8 @@ const ClientRegister = () => {
   const [visitsPerMonth, setVisitsPerMonth] = useState(0);
 
   const handleSubmit = async(e) => {
+    e.preventDefault();
+    
     const newClient = {
       clientRUT,
       clientName,
@@ -29,14 +31,14 @@ const ClientRegister = () => {
   
     try {
       const response = await clientService.saveClient(newClient);
-      console.log('Cliente creado:', response.data);
-      alert('Cliente creado con éxito!');
-  
       setClientRut('');
       setClientName('');
       setClientEmail('');
       setClientBirthday('');
       setVisitsPerMonth(0);
+      console.log('Cliente creado:', response.data);
+      alert('Cliente creado con éxito!');
+
     } catch (error) {
       console.error('Error al crear el cliente:', error);
       alert('Error al crear el cliente. Por favor, intente nuevamente.');
@@ -66,7 +68,7 @@ const ClientRegister = () => {
                   onChange={(e) => setClientRut(e.target.value)}
                   required
                   InputProps={{
-                    inputProps: { maxLength: 12 }
+                    inputProps: { maxLength: 10 }
                   }}
                 />
               </Grid>
@@ -106,7 +108,12 @@ const ClientRegister = () => {
           </Box>
 
           <Box sx={{ textAlign: 'center', mt: 4, backgroundColor: "#FFA500"}}>
-            <Button type="submit" variant="conteined" color="primary" size="large">
+            <Button 
+              type="submit" 
+              variant="conteined" 
+              color="primary" 
+              size="large"
+            >
               Registrar Cliente
             </Button>
           </Box>

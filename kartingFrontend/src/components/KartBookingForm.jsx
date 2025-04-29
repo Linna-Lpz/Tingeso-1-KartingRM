@@ -384,7 +384,7 @@ const KartBookingForm = () => {
                   helperText={errors.email}
                 />
               </Grid>
-              <Grid sx={{ display: 'flex', alignItems: 'center' }}>
+              <Grid sx={{ display: 'flex', alignItems: 'center'}}>
                 <IconButton 
                   color="primary" 
                   onClick={addPerson}
