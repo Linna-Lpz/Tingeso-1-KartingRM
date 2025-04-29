@@ -253,7 +253,7 @@ const RackWeekly = () => {
                               p: 1, 
                               borderRadius: 1, 
                               bgcolor: 'orange',
-                              color: 'primary.contrastText',
+                              color: 'white',
                               mb: 0.5,
                               boxShadow: 1,
                               fontSize: '0.8rem'
@@ -262,7 +262,7 @@ const RackWeekly = () => {
                             <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.8rem' }}>
                               {getClientName(booking)}
                             </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
                               {booking.bookingTime} - {booking.bookingTimeEnd}
                             </Typography>
                           </Box>

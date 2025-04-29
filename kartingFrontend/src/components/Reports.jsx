@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import bookingServiceImport from '../services/services.management';
+import bookingService from '../services/services.management';
 
 // Función auxiliar para obtener el mes
 const getMonth = (date) => date.getMonth();
@@ -9,58 +9,31 @@ const getMonth = (date) => date.getMonth();
 const getYear = (date) => date.getFullYear();
 
 const Reports = () => {
-    const [bookings, setBookings] = useState([]);
-    const [error, setError] = useState(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedMonth, setSelectedMonth] = useState(getMonth(currentDate));
     const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
     const [reportData, setReportData] = useState({});
+    const [totalIncomes, setTotalIncomes] = useState({});
+    const [error, setError] = useState(null);
+    const lapsOrMaxTime = [10, 15 ,20]
 
     useEffect(() => {
-        fetchConfirmedBookings();
-    }, []);
+        lapsOrMaxTime.forEach(laps => {
+          fetchConfirmedBookings(laps);
+        });
+      }, []);
 
-    // Función para obtener las reservas confirmadas
-    const fetchConfirmedBookings = async () => {
+    // Función para obtener las reservas por mes y número de vueltas
+    const fetchConfirmedBookings = async (lapsOrTimeMax) => {
         try {
-            const response = await bookingServiceImport.getConfirmedBookings();
-            console.log("Reservas confirmadas:", response.data);
-            setBookings(response.data);
-            processBookingsData(response.data);
+            const response = await bookingService.getBookingsForReport1(lapsOrTimeMax);
+            const responseTotalIncomes = await bookingService.getIncomesForLapsOfMonth(lapsOrTimeMax);
+            setReportData(prev => ({...prev, [lapsOrTimeMax]: response.data})); // Actualiza el estado con los datos obtenidos
+            setTotalIncomes(responseTotalIncomes.data);
             setError(null);
         } catch (err) {
-            console.error("Error al obtener las reservas confirmadas:", err);
             setError("No se pudieron cargar las reservas. Por favor, intente de nuevo más tarde.");
         }
-    };
-
-    // Procesar los datos de reservas para el reporte
-    const processBookingsData = (bookingsData) => {
-        // Objeto para almacenar los datos procesados
-        // Estructura: { lapsOrTime: { month: totalAmount } }
-        const processedData = {};
-    
-        bookingsData.forEach(booking => {
-            // Asegurarse de que los campos necesarios existan
-            const lapsOrTime = booking.lapsOrMaxTimeAllowed || 0;
-            console.log("Vueltas o tiempo máximo:", lapsOrTime);
-    
-            const month = new Date(booking.bookingDate).getMonth(); // Obtener el mes (0-11)
-            console.log("Mes de la reserva:", month);
-    
-            const amount = booking.totalAmount || 0;
-    
-            // Inicializar la estructura si no existe
-            if (!processedData[lapsOrTime]) {
-                processedData[lapsOrTime] = Array(12).fill(0);
-            }
-    
-            // Sumar el monto al mes correspondiente
-            processedData[lapsOrTime][month] += amount;
-            console.log("Monto total por mes:", processedData[lapsOrTime][month]);
-        });
-    
-        setReportData(processedData);
     };
 
     // Nombres de los meses
@@ -98,7 +71,44 @@ const Reports = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        
+                        {lapsOrMaxTime.map((laps) => {
+                            const data = reportData[laps] || [];
+                            return (
+                            <TableRow key={laps}>
+                                <TableCell align="center">
+                                {`${laps} vueltas o ${laps} mins`}
+                                </TableCell>
+                                {monthNames.map((_, index) => (
+                                <TableCell key={index} align="center">
+                                    {data[index + 1] || 0}
+                                </TableCell>
+                                ))}
+                                <TableCell align="center">
+                                {data[13] || 0}
+                                </TableCell>
+                            </TableRow>
+                            );
+                        })}
+                        <TableRow>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                            {/* Recorremos los valores de totalIncomes para mostrar el total de cada mes */}
+                            {Array.isArray(totalIncomes) ? 
+                                totalIncomes.map((total, index) => (
+                                    // Si el índice es 0, es el primer elemento, que no se muestra
+                                    
+                                        <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>
+                                            {total || 0}
+                                        </TableCell>
+                                    
+                                )).filter(Boolean) : 
+                                // Si todavía no hay datos, mostramos celdas vacías
+                                Array(13).fill(0).map((_, index) => (
+                                    <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>
+                                        0
+                                    </TableCell>
+                                ))
+                            }
+                        </TableRow>
                     </TableBody>
                 </Table>
             </TableContainer>
