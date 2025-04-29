@@ -56,7 +56,7 @@ const ClientRegister = () => {
         <form onSubmit={handleSubmit}>
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom align="center">
-              Información del Cliente (2024)
+              Información del Cliente
             </Typography>
             <Grid container spacing={3} justifyContent="center">
               <Grid>
