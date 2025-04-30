@@ -4,7 +4,7 @@ import { LocalizationProvider, DigitalClock, DateCalendar } from '@mui/x-date-pi
 import { es } from 'date-fns/locale';
 import { 
   Container, Typography, TextField, Button, Paper, Grid, 
-  IconButton, List, ListItem, ListItemText, Divider, Box, Snackbar, Alert 
+  IconButton, List, ListItem, ListItemText, Divider, Box
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -23,7 +23,6 @@ const HOLIDAYS = [
 
 const initialPersonState = { rut: '', name: '', email: '' };
 
-// Componente principal
 const KartBookingForm = () => {
   // Estados: fecha y hora
   const [bookingDate, setBookingDate] = useState(null);
@@ -68,7 +67,6 @@ const KartBookingForm = () => {
   
     const formattedDate = date.toISOString().split('T')[0];
     try {
-      // Desactivar el indicador de carga solo cuando sea necesario
       const [startResponse, endResponse] = await Promise.all([
         bookingService.getBookingTimesByDate(formattedDate),
         bookingService.getBookingTimesEndByDate(formattedDate)
@@ -106,7 +104,7 @@ const KartBookingForm = () => {
     }
   }, [bookingDate, fetchReservedTimes]);
 
-  // Función memoizada para deshabilitar horarios
+  // Función para deshabilitar horarios
   const shouldDisableTime = useCallback((timeValue) => {
     if (!bookingDate) return true;
   
@@ -129,7 +127,7 @@ const KartBookingForm = () => {
     const potentialEndTime = new Date(selectedTime);
     potentialEndTime.setMinutes(potentialEndTime.getMinutes() + blockDuration);
   
-    // Comprobar solapamiento más eficientemente
+    // Comprobar solapamiento
     return bookingTimeNoFree.some(blockTime => 
       (selectedTime >= blockTime.start && selectedTime < blockTime.end) ||
       (potentialEndTime > blockTime.start && selectedTime < blockTime.start)
@@ -363,7 +361,7 @@ const KartBookingForm = () => {
               <Grid>
                 <TextField
                   fullWidth
-                  label="Nombre"
+                  label="Nombre y Apellido"
                   value={person.name}
                   onChange={(e) => handlePersonChange('name', e.target.value)}
                   error={!!errors.name}

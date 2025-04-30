@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const BOOKING_API_URL = "http://74.163.96.5/api/booking";
-const CLIENT_API_URL = "http://74.163.96.5/api/client";
+const BOOKING_API_URL = "http://localhost:8090/api/booking";
+const CLIENT_API_URL = "http://localhost:8090/api/client";
 
 // ------------------ Booking ------------------
 function saveBooking(data) {
@@ -40,6 +40,14 @@ function sendVoucherByEmail(bookingId){
     return axios.post(`${BOOKING_API_URL}/send/${bookingId}`);
 }
 
+function getBookingsForReport1(lapsOrTimeMax){
+    return axios.get(`${BOOKING_API_URL}/getBookingsForReport1/${lapsOrTimeMax}`);
+}
+
+function getIncomesForLapsOfMonth(){
+    return axios.get(`${BOOKING_API_URL}/getTotalForReport`);
+}
+
 // ------------------ Client ------------------
 function saveClient(client){
     return axios.post(`${CLIENT_API_URL}/save`, client);
@@ -63,5 +71,7 @@ export default {
     cancelBooking,
     saveClient,
     sendVoucherByEmail,
+    getBookingsForReport1,
+    getIncomesForLapsOfMonth,
     getClientByRut
 };

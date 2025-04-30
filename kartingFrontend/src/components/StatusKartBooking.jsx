@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/services.management';
 
 const StatusKartBooking = () => {
@@ -8,7 +7,6 @@ const StatusKartBooking = () => {
   const [error, setError] = useState(null);
   const [cancelBookingId, setCancelBookingId] = useState(null);
   const [refresh, setRefresh] = useState(false); // Estado para forzar la actualización
-  const navigate = useNavigate();
 
   // Función para cargar las reservas
   const fetchBookings = async () => {
@@ -73,7 +71,6 @@ const StatusKartBooking = () => {
   return (
     <div style={{ padding: '20px' }}>
       <h3>Consulta tus reservas</h3>
-
       <div>
         <input
           type="text"
@@ -86,6 +83,7 @@ const StatusKartBooking = () => {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      {/* Mostrar reservas si existen */}
       <div style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
         {bookings.length > 0 ? (
           bookings.map((booking) => (
@@ -153,7 +151,7 @@ const StatusKartBooking = () => {
             </div>
           ))
         ) : (
-          <p>Ingrese su rut para pagar y confirmar o cancelar una reserva.</p>
+          <p>Ingrese su rut para pagar o cancelar una reserva.</p>
         )}
       </div>
     </div>

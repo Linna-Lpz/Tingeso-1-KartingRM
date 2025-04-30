@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Grid,
-  Box,
-  Divider
+  Container, Typography, TextField, Button, Paper,
+  Grid, Box, Divider
 } from '@mui/material';
 import clientService from '../services/services.management';
 
@@ -18,6 +12,7 @@ const ClientRegister = () => {
   const [clientBirthday, setClientBirthday] = useState('');
   const [visitsPerMonth, setVisitsPerMonth] = useState(0);
 
+  // Función para manejar el envío del formulario
   const handleSubmit = async(e) => {
     e.preventDefault();
     
@@ -74,8 +69,9 @@ const ClientRegister = () => {
               </Grid>
               <Grid>
                 <TextField
-                  fullWidth
-                  label="Nombre"
+                  fullWidth 
+                  label="Nombre y Apellido"
+                  placeholder='Ej: Juan Pérez'
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   required
@@ -112,9 +108,9 @@ const ClientRegister = () => {
               type="submit" 
               variant="conteined" 
               color="primary" 
-              size="large"
+              size="small"
             >
-              Registrar Cliente
+              Registrar Usuario
             </Button>
           </Box>
         </form>

@@ -1,32 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Typography,
-  Box,
-  Alert,
-  IconButton,
-  FormControl,
-  Select,
-  MenuItem,
-  Grid
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, 
+  TableRow, Typography, Box, Alert, IconButton, FormControl,
+  Select, MenuItem, Grid
 } from '@mui/material';
 import { 
-  format, 
-  startOfWeek, 
-  addDays, 
-  addWeeks, 
-  subWeeks, 
-  startOfMonth,
-  getMonth,
-  getYear,
-  setMonth,
-  setYear
+  format, startOfWeek, addDays, addWeeks, subWeeks, 
+  startOfMonth, getMonth, getYear, setMonth, setYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -39,7 +19,7 @@ const RackWeekly = () => {
   const [weekStart, setWeekStart] = useState(startOfWeek(currentDate, { weekStartsOn: 1 }));
   const [selectedMonth, setSelectedMonth] = useState(getMonth(currentDate));
   const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
-  
+
   // Estados para los datos
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState(null);

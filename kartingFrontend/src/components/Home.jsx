@@ -5,8 +5,8 @@ const Home = () => {
     return (
       <div>
         <h1>KartingRM: Reserva tu kart!</h1>
-        <p>
-          Ven con tus amigos y familiares a disfrutar una emocionante experiencia
+        <p style={{ textAlign: 'center' }}>
+          Ven con tus amigos y familiares a disfrutar una emocionante experiencia!
         </p>
 
         {/* Sección de información de tarifas */}

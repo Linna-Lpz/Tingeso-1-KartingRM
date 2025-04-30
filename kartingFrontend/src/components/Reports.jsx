@@ -1,17 +1,8 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import bookingService from '../services/services.management';
 
-// Función auxiliar para obtener el mes
-const getMonth = (date) => date.getMonth();
-
-// Función auxiliar para obtener el año 
-const getYear = (date) => date.getFullYear();
-
 const Reports = () => {
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedMonth, setSelectedMonth] = useState(getMonth(currentDate));
-    const [selectedYear, setSelectedYear] = useState(getYear(currentDate));
     const [reportData, setReportData] = useState({});
     const [totalIncomes, setTotalIncomes] = useState({});
     const [error, setError] = useState(null);
@@ -45,18 +36,15 @@ const Reports = () => {
     return (
         <div>
             <h1>Reporte de ventas</h1>
-    
             {/* Reporte de ingresos por número de vueltas o tiempo máximo. */}
             <Typography variant="h6" gutterBottom align="center">
                 Ingresos por número de vueltas o tiempo máximo
             </Typography>
-            
             {error && (
                 <Typography color="error" align="center" sx={{ mb: 2 }}>
                     {error}
                 </Typography>
             )}
-            
             <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
                 <Table>
                     <TableHead>
@@ -101,7 +89,7 @@ const Reports = () => {
                                         </TableCell>
                                     
                                 )).filter(Boolean) : 
-                                // Si todavía no hay datos, mostramos celdas vacías
+                                // Si todavía no hay datos, se muestran celdas con 0
                                 Array(13).fill(0).map((_, index) => (
                                     <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>
                                         0
@@ -136,7 +124,6 @@ const Reports = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
-
         </div> 
     );
 };
