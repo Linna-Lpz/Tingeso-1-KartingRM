@@ -48,7 +48,15 @@ function getBookingsForReport1(lapsOrTimeMax){
 }
 
 function getIncomesForLapsOfMonth(){
-    return axios.get(`${REPORT_API_URL}/getTotalForReport`);
+    return axios.get(`${REPORT_API_URL}/getTotalForReport1`);
+}
+
+function getBookingsForReport2(people){
+    return axios.get(`${REPORT_API_URL}/getBookingsForReport2/${people}`);
+}
+
+function getIncomesForNumOfPeopleOfMonth(){
+    return axios.get(`${REPORT_API_URL}/getTotalForReport2`);
 }
 
 // ------------------ Client ------------------

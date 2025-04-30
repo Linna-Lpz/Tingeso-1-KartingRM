@@ -29,8 +29,28 @@ public class ControlCalculateReport {
     /**
      * Método para obtener ingresos totales de un mes de todas las vueltas
      */
-    @GetMapping("/getTotalForReport")
+    @GetMapping("/getTotalForReport1")
     public ResponseEntity<List<Integer>> getIncomesForLapsOfMonth(){
+        List<Integer> incomes = serviceCalculateReport.getIncomesForLapsOfMonth();
+        return ResponseEntity.ok(incomes);
+    }
+
+    /**
+     * Método para obtener los ingresos totales de un mes según número de personas
+     * @param people Número de personas
+     * @return Lista de ingresos totales
+     */
+    @GetMapping("/getBookingsForReport2/{people}")
+    public ResponseEntity<List<Integer>> getIncomesForMonthOfNumOfPeople(@PathVariable Integer people){
+        List<Integer> incomes = serviceCalculateReport.getIncomesForMonthOfNumOfPeople(people);
+        return ResponseEntity.ok(incomes);
+    }
+
+    /**
+     * Método para obtener ingresos totales de un mes de todas las vueltas
+     */
+    @GetMapping("/getTotalForReport2")
+    public ResponseEntity<List<Integer>> getIncomesForNumOfPeopleOfMonth(){
         List<Integer> incomes = serviceCalculateReport.getIncomesForLapsOfMonth();
         return ResponseEntity.ok(incomes);
     }

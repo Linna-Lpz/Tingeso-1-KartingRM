@@ -134,6 +134,4 @@ public class ControlBooking {
     public void sendVoucherByEmail(@PathVariable Long bookingId) {
         serviceVoucher.sendVoucherByEmail(bookingId);
     }
-
-
 }
