@@ -18,4 +18,7 @@ public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
 
     @Query("SELECT b FROM EntityBooking b WHERE b.bookingStatus = ?1 AND MONTH(b.bookingDate) = ?2 AND (b.lapsOrMaxTimeAllowed = ?3)")
     List<EntityBooking> findByStatusAndDayAndLapsOrMaxTime(String status, String month, Integer maxTimeAllowed);
+
+    @Query("SELECT b FROM EntityBooking b WHERE b.bookingStatus = ?1 AND MONTH(b.bookingDate) = ?2 AND (b.numOfPeople = ?3)")
+    List<EntityBooking> findByStatusAndDayAndNumOfPeople(String status, String month, Integer numOfPeople);
 }

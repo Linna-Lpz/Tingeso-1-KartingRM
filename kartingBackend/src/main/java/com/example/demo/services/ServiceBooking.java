@@ -450,7 +450,6 @@ public class ServiceBooking {
      * @return ingresos totales
      */
     public Integer getIncomesForTimeAndMonth(Integer lapsOrTimeMax, String month) {
-        System.out.println("Mes: " + month);
         List<EntityBooking> bookings = repoBooking.findByStatusAndDayAndLapsOrMaxTime("confirmada", month, lapsOrTimeMax);
         Integer incomes = 0;
         for (EntityBooking booking : bookings) {
@@ -479,10 +478,5 @@ public class ServiceBooking {
         totalIncomes.add(value1 + value2 + value3);
         return totalIncomes;
     }
-
-    /**
-     * Método para calcular ingresos por número de vueltas o tiempo máximo
-     *
-     */
 
 }
