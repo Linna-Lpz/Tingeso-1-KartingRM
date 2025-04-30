@@ -408,7 +408,7 @@ const KartBookingForm = () => {
                 size="large"
                 disabled={people.length < numOfPeople || !bookingDate || !bookingTime || !lapsOrMaxTime}
               >
-                Reservar
+                Reservar.
               </Button>
             </Box>
           </form>
