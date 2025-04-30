@@ -5,7 +5,6 @@ import com.example.demo.entities.EntityClient;
 import com.example.demo.repositories.RepoBooking;
 import com.example.demo.repositories.RepoClient;
 import com.example.demo.services.ServiceBooking;
-import com.example.demo.services.ServiceVoucher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -13,8 +12,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
-import java.util.Collections;
-import java.util.Arrays;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -746,70 +743,5 @@ class TestServiceBooking {
         verify(repoBooking).findByBookingStatusContains("confirmada");
     }
 
-    // -------------------------------Test-GetIncomesForTimeAndMonth--------------------------------------------
-    @Test
-    void whenGetIncomesForTimeAndMonth_thenReturnsCorrectIncome() {
-        // Given
-        Integer lapsOrTimeMax = 10;
-        String month = "05"; // May
 
-        EntityBooking booking1 = new EntityBooking();
-        booking1.setNumOfPeople(3);
-        booking1.setPrice("15000");
-
-        EntityBooking booking2 = new EntityBooking();
-        booking2.setNumOfPeople(2);
-        booking2.setPrice("15000");
-
-        List<EntityBooking> bookings = List.of(booking1, booking2);
-        when(repoBooking.findByStatusAndDayAndLapsOrMaxTime("confirmada", month, lapsOrTimeMax))
-                .thenReturn(bookings);
-
-        // When
-        Integer result = serviceBooking.getIncomesForTimeAndMonth(lapsOrTimeMax, month);
-
-        // Then
-        // Expected: (3 * 15000) + (2 * 15000) = 75000
-        assertThat(result).isEqualTo(75000);
-        verify(repoBooking).findByStatusAndDayAndLapsOrMaxTime("confirmada", month, lapsOrTimeMax);
-    }
-
-    @Test
-    void whenGetIncomesForTimeAndMonthWithNoBookings_thenReturnsZero() {
-        // Given
-        Integer lapsOrTimeMax = 10;
-        String month = "06"; // June
-
-        when(repoBooking.findByStatusAndDayAndLapsOrMaxTime("confirmada", month, lapsOrTimeMax))
-                .thenReturn(Collections.emptyList());
-
-        // When
-        Integer result = serviceBooking.getIncomesForTimeAndMonth(lapsOrTimeMax, month);
-
-        // Then
-        assertThat(result).isEqualTo(0);
-    }
-
-    // ------------------------------------------Test-GetIncomesForLapsOfMonth--------------------------------------------
-    @Test
-    void whenGetIncomesForLapsOfMonth_thenReturnsCorrectTotals() {
-        // Given
-        List<Integer> incomes10 = Arrays.asList(10, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 78000);
-        List<Integer> incomes15 = Arrays.asList(15, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 90000);
-        List<Integer> incomes20 = Arrays.asList(20, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 102000);
-
-        doReturn(incomes10).when(serviceBooking).getIncomesForMonthOfLaps(10);
-        doReturn(incomes15).when(serviceBooking).getIncomesForMonthOfLaps(15);
-        doReturn(incomes20).when(serviceBooking).getIncomesForMonthOfLaps(20);
-
-        // When
-        List<Integer> result = serviceBooking.getIncomesForLapsOfMonth();
-
-        // Then
-        assertThat(result).hasSize(13); // 12 months + total
-        assertThat(result.get(0)).isEqualTo(6000);  // 1000 + 2000 + 3000
-        assertThat(result.get(1)).isEqualTo(9000);  // 2000 + 3000 + 4000
-        assertThat(result.get(11)).isEqualTo(39000); // 12000 + 13000 + 14000
-        assertThat(result.get(12)).isEqualTo(270000); // 78000 + 90000 + 102000
-    }
 }

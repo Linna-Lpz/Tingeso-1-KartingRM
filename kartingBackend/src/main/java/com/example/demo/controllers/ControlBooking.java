@@ -135,23 +135,5 @@ public class ControlBooking {
         serviceVoucher.sendVoucherByEmail(bookingId);
     }
 
-    /**
-     * Método para obtener los ingresos totales de un mes según número de vueltas
-     * @param lapsOrTimeMax Número de vueltas o tiempo máximo permitido
-     * @return Lista de ingresos totales
-     */
-    @GetMapping("/getBookingsForReport1/{lapsOrTimeMax}")
-    public ResponseEntity<List<Integer>> getIncomesForMonthOfLaps(@PathVariable Integer lapsOrTimeMax) {
-        List<Integer> incomes = serviceBooking.getIncomesForMonthOfLaps(lapsOrTimeMax);
-        return ResponseEntity.ok(incomes);
-    }
 
-    /**
-     * Método para obtener ingresos totales de un mes de todas las vueltas
-     */
-    @GetMapping("/getTotalForReport")
-    public ResponseEntity<List<Integer>> getIncomesForLapsOfMonth(){
-        List<Integer> incomes = serviceBooking.getIncomesForLapsOfMonth();
-        return ResponseEntity.ok(incomes);
-    }
 }
