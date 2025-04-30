@@ -325,7 +325,7 @@ const KartBookingForm = () => {
             </Grid>
 
             {/* Sección de participantes */}
-            <Typography variant="h6" gutterBottom>Datos de los Participantes</Typography>
+            <Typography variant="h6" gutterBottom>Datos de las personas</Typography>
             <Typography variant="subtitle1" gutterBottom color='textSecondary'> Ingresa primero a quien realiza la reserva</Typography>
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid>
