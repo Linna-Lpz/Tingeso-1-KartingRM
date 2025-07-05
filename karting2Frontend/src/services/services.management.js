@@ -1,10 +1,10 @@
 import axios from "axios";
 
-const BOOKING_API_URL = `http://localhost:8090/booking`;
-const CLIENT_API_URL = `http://localhost:8090/client`; 
-const VOUCHER_API_URL = `http://localhost:8090`;
-const RACK_API_URL = `http://localhost:8090/rack`;
-const REPORT_API_URL = `http://localhost:8090/reports`;
+const BOOKING_API_URL = `http://localhost:8761/booking`;
+const CLIENT_API_URL = `http://localhost:8761/client`; 
+const VOUCHER_API_URL = `http://localhost:8761`;
+const RACK_API_URL = `http://localhost:8761/rack`;
+const REPORT_API_URL = `http://localhost:8761/reports`;
 
 // ------------------ Booking ------------------
 function saveBooking(data) {
