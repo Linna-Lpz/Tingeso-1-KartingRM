@@ -87,6 +87,16 @@ public class ControlBooking {
         return ResponseEntity.ok(times);
     }
 
+    /**
+     * Método para obtener una lista de reservas confirmadas
+     */
+    @GetMapping("/getConfirmedBookings")
+    public ResponseEntity<List<EntityBooking>> getConfirmedBookings() {
+        List<EntityBooking> bookings = serviceBooking.getConfirmedBookings();
+        System.out.println("Entro a confirmadas");
+        return ResponseEntity.ok(bookings);
+    }
+
     //----------------------------------------------------------------
     // --- Método para rack semanal ---
     //----------------------------------------------------------------
@@ -105,40 +115,5 @@ public class ControlBooking {
     // --- Métodos para exportar comprobantes ---
     //----------------------------------------------------------------
 
-    /**
-     * Método para exportar el comprobante a Excel
-     * @param bookingId ID de la reserva
-     */
-    @PostMapping("/export/{bookingId}")
-    public ResponseEntity<byte[]> exportVoucherToExcel(@PathVariable Long bookingId) {
-        return serviceVoucher.exportVoucherToExcel(bookingId);
-    }
 
-    /**
-     * Método para exportar el comprobante a PDF
-     * @param bookingId ID de la reserva
-     */
-    @PostMapping("/convert/{bookingId}")
-    public ResponseEntity<byte[]> convertExcelToPdf(@PathVariable Long bookingId) {
-        return serviceVoucher.convertExcelToPdf(bookingId);
-    }
-
-    /**
-     * Método para obtener una lista de reservas confirmadas
-     */
-    @GetMapping("/getConfirmedBookings")
-    public ResponseEntity<List<EntityBooking>> getConfirmedBookings() {
-        List<EntityBooking> bookings = serviceBooking.getConfirmedBookings();
-        System.out.println("Entro a confirmadas");
-        return ResponseEntity.ok(bookings);
-    }
-
-    /**
-     * Método para enviar el comprobante por correo electrónico
-     * @param bookingId ID de la reserva
-     */
-    @PostMapping("/send/{bookingId}")
-    public void sendVoucherByEmail(@PathVariable Long bookingId) {
-        serviceVoucher.sendVoucherByEmail(bookingId);
-    }
 }
