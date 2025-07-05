@@ -22,15 +22,20 @@ public class ControlBooking {
     @Autowired
     ServiceVoucher serviceVoucher;
 
+    @PostMapping("/save")
+    public ResponseEntity<EntityBooking> saveBooking(@RequestBody EntityBooking booking) {
+        serviceBooking.saveBooking(booking);
+        return ResponseEntity.ok(booking);
+    }
 
     /**
-     * Método para guardar una reserva
-     * @param entityBooking Objeto de tipo EntityBooking
+     * Método para obtener una lista de reservas
+     * @return Lista de reservas
      */
-    @PostMapping("/save")
-    public ResponseEntity<EntityBooking> saveBooking(@RequestBody EntityBooking entityBooking) {
-        serviceBooking.saveBooking(entityBooking);
-        return ResponseEntity.ok(entityBooking);
+    @GetMapping("/getBookings")
+    public ResponseEntity<List<EntityBooking>> getBookings() {
+        List<EntityBooking> bookings = serviceBooking.getBookings();
+        return ResponseEntity.ok(bookings);
     }
 
     /**
@@ -55,48 +60,50 @@ public class ControlBooking {
         return ResponseEntity.ok("Reserva cancelada");
     }
 
+    //---------------------------------------------------------------
+    //    Método para x
+    //---------------------------------------------------------------
+
     /**
      * Método para obtener una lista de reservas de un cliente
      * @param rut RUT del cliente
-     * @return Lista de reservas del cliente
+     * @return lista de reservas
      */
-    @GetMapping("/getBookings/{rut}")
+    @GetMapping("/getBookingsByUser/{rut}")
     public ResponseEntity<List<EntityBooking>> getBookingsByUserRut(@PathVariable String rut) {
         List<EntityBooking> bookings = serviceBooking.getBookingsByUserRut(rut);
         return ResponseEntity.ok(bookings);
     }
 
-    /**
-     * Método para obtener una lista de reservas
-     * @return Lista de reservas
-     */
-    @GetMapping("/getBookings")
-    public ResponseEntity<List<EntityBooking>> getBookings() {
-        List<EntityBooking> bookings = serviceBooking.getBookings();
-        return ResponseEntity.ok(bookings);
-    }
-
-    /**
-     * Método para obtener una lista de reservas por fecha
-     * @param date Fecha de la reserva
-     * @return Lista de reservas por fecha
-     */
-    @GetMapping("/getBookingTimesByDate/{date}")
-    public ResponseEntity<List<LocalTime>> getTimesByDate(@PathVariable LocalDate date) {
+    @GetMapping("/getTimesByDate/{date}")
+    public ResponseEntity<List<LocalTime>> getTimesByDate(@PathVariable LocalDate date){
         List<LocalTime> times = serviceBooking.getTimesByDate(date);
         return ResponseEntity.ok(times);
     }
 
-    /**
-     * Método para obtener una lista de reservas por fecha
-     * @param date Fecha de la reserva
-     * @return Lista de reservas por fecha
-     */
-    @GetMapping("/getBookingTimesEndByDate/{date}")
-    public ResponseEntity<List<LocalTime>> getTimesEndByDate(@PathVariable LocalDate date) {
+    @GetMapping("/getTimesEndByDate/{date}")
+    public ResponseEntity<List<LocalTime>> getTimesEndByDate(@PathVariable LocalDate date){
         List<LocalTime> times = serviceBooking.getTimesEndByDate(date);
         return ResponseEntity.ok(times);
     }
+
+    //----------------------------------------------------------------
+    // --- Método para rack semanal ---
+    //----------------------------------------------------------------
+    // TO DO: revisar quien llama y usa estas dos funciones contiguas
+    @GetMapping("/findByBookingDate/{bookingDate}")
+    public List<EntityBooking> findByBookingDate(@PathVariable LocalDate bookingDate){
+        return serviceBooking.findByBookingDate(bookingDate);
+    }
+
+    @GetMapping("/findByClientsRUTContains/{rut}")
+    public List<EntityBooking> findByClientsRUTContains(@PathVariable String rut){
+        return serviceBooking.findByClientsRUTContains(rut);
+    }
+
+    //----------------------------------------------------------------
+    // --- Métodos para exportar comprobantes ---
+    //----------------------------------------------------------------
 
     /**
      * Método para exportar el comprobante a Excel

@@ -38,7 +38,7 @@ public class ServiceClient {
             if (repoClient.findByClientRUT(clientRUT) != null) {
                 System.out.println("El cliente ya existe");
             } else {
-                client.setVisistsPerMonth(0);
+                client.setVisitsPerMonth(0);
                 repoClient.save(client);
             }
         }

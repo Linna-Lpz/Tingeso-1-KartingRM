@@ -80,7 +80,7 @@ public class ServiceVoucher {
                 Row dataRow = sheet.createRow(j + 1);
 
                 dataRow.createCell(0).setCellValue(clientNames.length > j ? clientNames[j] : "");
-                dataRow.createCell(1).setCellValue(booking.getPrice() != null ? booking.getPrice() : "");
+                dataRow.createCell(1).setCellValue(booking.getBasePrice() != null ? booking.getBasePrice() : "");
                 dataRow.createCell(2).setCellValue(discounts.length > j ? discounts[j] : "");
                 dataRow.createCell(3).setCellValue(totalPrices.length > j ? totalPrices[j] : "");
                 dataRow.createCell(4).setCellValue(booking.getIva() != null ? booking.getIva() : "");

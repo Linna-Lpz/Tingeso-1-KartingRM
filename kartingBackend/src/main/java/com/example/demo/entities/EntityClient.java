@@ -15,5 +15,5 @@ public class EntityClient {
     private String clientName; // Nombre Apellido
     private String clientEmail;
     private String clientBirthday; // DD-MM
-    private Integer visistsPerMonth;
+    private Integer visitsPerMonth;
 }

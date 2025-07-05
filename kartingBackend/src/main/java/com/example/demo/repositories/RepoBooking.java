@@ -16,6 +16,7 @@ public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
     List<EntityBooking> findByBookingStatusContains(String status);
     List<EntityBooking> findByClientsRUTContains(String rut);
 
+    // Query para los descuentos
     @Query("SELECT b FROM EntityBooking b WHERE b.bookingStatus = ?1 AND MONTH(b.bookingDate) = ?2 AND (b.lapsOrMaxTimeAllowed = ?3)")
     List<EntityBooking> findByStatusAndDayAndLapsOrMaxTime(String status, String month, Integer maxTimeAllowed);
 
@@ -30,4 +31,9 @@ public interface RepoBooking extends JpaRepository<EntityBooking, Long> {
 
     @Query("SELECT b FROM EntityBooking b WHERE b.bookingStatus = ?1 AND MONTH(b.bookingDate) = ?2 AND (11 <= b.numOfPeople AND b.numOfPeople <= 15)")
     List<EntityBooking> findByStatusAndDayAndNumOfPeople11to15(String status, String month, Integer numOfPeople);
+
+    // Query para el rack semanal
+    @Query("SELECT b FROM EntityBooking b WHERE b.bookingStatus = ?1 AND MONTH(b.bookingDate) = ?2 AND YEAR(b.bookingDate) = ?3")
+    List<EntityBooking> findByStatusAndMonthAndYear(String status, String month, String year);
+
 }
